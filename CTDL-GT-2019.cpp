@@ -6,6 +6,7 @@
 #include <map>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 
 #define DOWN -80
 #define UP -72
@@ -29,11 +30,11 @@ char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " 
 char ItemMayBay[3][20] = {"  THEM MAY BAY    ", "  XOA MAY BAY     ", "  HIEU CHINH MB   "};
 char ItemChuyenBay[3][20] = {"  THEM CHUYEN BAY ", "  XOA CHUYEN BAY  ", "  HIEU CHINH CB   "};
 
-char Alphabet[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 int thang[13]={0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 int NamNhuan(int nam){
 	return (nam%4==0 && nam%100!=0 || nam%400==0)? 1: 0;
 }
+char Alphabet[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 struct Time{
 	int gio, phut, ngay, thang, nam;
@@ -51,6 +52,16 @@ struct DanhSachVe
 	VeHanhKhach *dsVe;
 };
 
+struct ChuyenBay
+{
+	char MaCB[15];
+	Time NgayGioKH;
+	char NoiDen[40];
+	char TrangThai[4];
+	char SoHieuMB[15];
+	DanhSachVe dsVe;	
+};
+
 struct MayBay
 {
 	char SoHieuMB[15];
@@ -64,19 +75,9 @@ struct ListMayBay{
 	MayBay *DSMayBay[MAX_PLANES];
 };
 
-struct ChuyenBay
-{
-	char MaCB[15];
-	Time NgayGioKH;
-	char NoiDen[40];
-	char TrangThai[4];
-	char SoHieuMB[15];
-	DanhSachVe dsVe;	
-};
-
 struct NodeCB
 {
-	ChuyenBay chuyenBay;
+	ChuyenBay *chuyenBay;
 	NodeCB *pNext;
 };
 
@@ -97,6 +98,142 @@ struct ListHanhKhach
 	HanhKhach hanhKhach;
 	ListHanhKhach *pLeft, *pRight;
 };
+
+void setColor(int bgColor,int txtColor){
+    SetBGColor(bgColor);
+    SetColor(txtColor);
+}
+
+int nhapnam(int x=wherex(), int y=wherey()){
+	int nam=0;
+	int n, dem=0;
+	gotoxy(x,y);
+	while(dem!=4){
+		n=getch(); 
+		if(n==8){	//khi an phim delete
+			gotoxy(x,y); cout << "    "; gotoxy(x,y);
+			nam=0; dem=0;
+			continue;
+		}
+		if(n==9) return -2;	//nhan tab tra ve 0, neu gia tri nhap =0 thi khong lay
+		if(n==27) return -1;	////tra ve tru 1 thi khong nhap tiep nua va khong lay gia tri vua nhap
+		n-=48;
+		//if(n==-35) return 0;	//phim enter
+		if((n<0 || n>9)||(n==0 && dem==0)) continue;
+		dem++;
+		cout << n;
+		nam+=n*pow(10,4-dem);	
+	}
+	return nam;	
+}
+int nhapnt(int kieu=0, int x=wherex(), int y=wherey()){	//kieu: 0 ngay, 1 nhap thang, 2 nam,   3 nhap gio, 4 kieu phut
+	int kthang=0, kgio=0, kphut=0;
+	if(kieu==1) {
+		kthang=1; x=x+3;
+	}	
+	if(kieu==2) {
+		x=x+6;
+		return nhapnam(x,y);
+	}
+	if(kieu==3) {
+		kgio=1;
+	}
+	if(kieu==4) kphut=1;
+	
+	gotoxy(x,y);
+	int ngay=0, dem=0, n;
+	while(1){
+		n=getch();
+		if(n==8) {
+			gotoxy(x,y); cout << "  "; gotoxy(x,y);
+			ngay=0;dem=0;
+			continue;
+		}
+		if(n==9) return -2;	//nhan tab tra ve -2, neu gia tri nhap =0 thi khong lay
+		if(n==27) return -1;	//tra ve tru 1 thi khong nhap tiep nua va khong lay gia tri vua nhap	
+		n-=48;	//enter 13   -48 = -35
+	//	if(n==-35 && ngay==0) return 0;
+	//	if(n==-35 && (kieu==3 || kieu==4) && dem==1) return ngay;//
+		if(n==-35 && ngay>=1 && ngay<=3+(kthang*6)+(kgio*6)+(kphut*6)) {		//neu nhap 1-2-3 nhan enter thi dung lai
+			gotoxy(x,y); cout << "0" << ngay; 
+			return ngay;
+		}
+		if(n<0 || n>9) continue;
+		if((n>=4-(kthang*2)-(kgio*1)+(kphut*2)) && dem==0){
+			cout << "0" << n;
+			return n;
+		}
+		if(dem==0) {
+			dem++;
+			ngay=n;
+			cout << n;
+			continue;
+		}
+		if(n==0 && (kieu==3||kieu==4)) return 0;
+		if(n==0 && ngay==0) continue;
+		
+		if(ngay==3-(kthang*2)-(kgio*1)+(kphut*3)) 
+			if(n>=2+(kthang*1)+(kgio*2)) continue;
+		if(dem==1){
+			cout << n;
+			return ngay*10+n;
+		}
+	}
+}
+void NgayHT(Time time, int x=wherex(), int y=wherey()){
+	gotoxy(x,y);
+	time.ngay<10?cout << "0" << time.ngay:cout << time.ngay;
+	time.thang<10?cout <<" 0" << time.thang:cout << " " << time.thang;
+	time.nam<10?cout <<" " << time.nam:cout << " " << time.nam;
+	setColor(0,15); gotoxy(x+2,y); cout << "/";	gotoxy(x+5,y); cout << "/";
+}
+bool NhapNgay(Time &time, int x=wherex(), int y=wherey()){
+	int kieu=0, dd, mm, yy;
+	setColor(0,8);
+	NgayHT(time, x,y); 
+	Time h;
+	h.ngay=nhapnt(0,x,y); 	//Nhap ngay		
+		if(h.ngay==-1) return false;	//bam esc thi thoat
+		if(h.ngay==-2) {		//Neu bam phim tab thi tra ve ngay he thong
+			h.ngay=time.ngay;
+			gotoxy(x,y); time.ngay<10?cout << "0" << time.ngay:cout << time.ngay;
+		}
+	h.thang=nhapnt(1,x,y);	//Nhap thang
+		if(h.thang==-1) return false;	//bam esc thi thoat
+		if(h.thang==-2) {	//neu bam phim tab thi tra ve thang he thong
+			h.thang=time.thang;
+			gotoxy(x+3,y); time.thang<10?cout << "0" << time.thang:cout << time.thang;
+		}
+	while(h.ngay>thang[h.thang]+(h.thang==2)?1:0){	//kiem tra xem ngay vua nhap co hop he so voi thang khong
+		gotoxy(x,y); cout << "  ";	gotoxy(x,y);
+		h.ngay=nhapnt(0,x,y);	//Nhap cho den khi ngay dung voi thang	
+			if(h.ngay==-1) return false;
+			if(h.ngay==-2) {		//neu bam phim tab thi tra ve ngay he thong va quay lai kiem tra xem co hop le khong (neu ngay he thong =30 va thang minh nhap =2 thi nhap lai)
+				h.ngay=time.ngay;
+				gotoxy(x,y); time.ngay<10?cout << "0" << time.ngay:cout << time.ngay;
+			}
+	}
+	h.nam=nhapnt(2,x,y); 	
+		if(h.nam==-1) return false;
+		if(h.nam==-2) {
+			h.nam=time.nam; gotoxy(x+6, y); cout << time.nam;
+		}
+	while(h.thang==2 && h.ngay > thang[2]+NamNhuan(h.nam)) {	//neu nhap nam (nam nhuan) roi lam cho ngay cua thang 2 khong hop le thi nhap lai ngay
+		gotoxy(x,y); cout << "  ";	gotoxy(x,y);
+		h.ngay=nhapnt(0,x,y);		//nhap lai ngay
+			if(h.ngay==-1) return false;	//nhan esc thi thoat luon
+			if(h.ngay==-2) h.ngay=32;					//neu khong nhap ngay ma bam phim tab de bo qua thi cho dk bi sai quay lai nhap (khong duoc de trong)
+	}
+	//Luu gia tri cap nhat vao time
+	if(h.ngay!=0) time.ngay=h.ngay;
+	else if(h.ngay==0 || h.ngay==-1){
+		NgayHT(time,x,y); 
+		return false;
+	}
+	if(h.thang!=0) time.thang=h.thang;
+	if(h.nam!=0) time.nam=h.nam;
+	return true;
+}
 
 /* XU LI VE NODE HANH KHACH */
 //tao BST hanh khach
@@ -134,7 +271,7 @@ void NLR_HanhKhach(ListHanhKhach *root) {
 }
 
 /* XU LI VE NODE DANH SACH CHUYEN BAY */
-NodeCB* CreateNodeCB(ChuyenBay cb){
+NodeCB* CreateNodeCB(ChuyenBay *cb){
    NodeCB* node = new NodeCB;
    if (node) {
       node->chuyenBay = cb;
@@ -143,7 +280,7 @@ NodeCB* CreateNodeCB(ChuyenBay cb){
    return node;
 }
 
-void AddHeadCB(ListCB &list, NodeCB* node)
+bool AddHeadCB(ListCB &list, NodeCB* node)
 {
    if (!list.head) //xét danh sách r?ng
       list.head = list.tail = node;
@@ -152,9 +289,10 @@ void AddHeadCB(ListCB &list, NodeCB* node)
       node->pNext = list.head; //s?a lk node c?n thêm
       list.head = node; //ch?nh l?i con tr? c?a danh sách
    }
+   return true;
 }
  
-void AddTailCB(ListCB &list, NodeCB* node)
+bool AddTailCB(ListCB &list, NodeCB* node)
 {
    if (!list.head)
       list.head = list.tail = node;
@@ -163,20 +301,26 @@ void AddTailCB(ListCB &list, NodeCB* node)
       list.tail->pNext = node;
       list.tail = node;
    }
+    return true;
 }
  
-//void AddAfterCB(ListCB &list, NodeCB *node, NodeCB *before)
-//{
-//   if (!before)
-//   {
-//      node->pNext = before->pNext; //s?a liên k?t c?a node m?i
-//      before->pNext = node; //s?a l?i lk c?a node có s?n
-//      if (list.tail == before)
-//         list.tail = node; //s?a l?i con tr? ch? danh sách
-//   }
-//   else
-//      AddHeadCB(list, node);
-//}
+ 
+ //test
+bool AddAfterCB(ListCB &list, NodeCB *node){
+	NodeCB *pos = list.head;		//vi tri node truoc
+	for(NodeCB *p = list.head; p != NULL; p = p ->pNext)
+	{
+		if(strcmp(node->chuyenBay->MaCB, p->chuyenBay->MaCB) < 0)
+		{
+			NodeCB *g = pos ->pNext;
+			node ->pNext = g;
+			pos ->pNext = node;
+			return true;
+		}
+		pos = p;
+	}
+	return false;
+}
 
 
 void DocFileChuyenBay(ListCB &listCB) {
@@ -188,21 +332,21 @@ void DocFileChuyenBay(ListCB &listCB) {
 	while(!f.eof())
 	{
 		//tao bien chua thong tin chuyen bay
-		ChuyenBay chuyenBay;
+		ChuyenBay *chuyenBay = new ChuyenBay();
 		getline(f,data);;
 		if(data.size() == 0) break;
-		strcpy(chuyenBay.MaCB, data.c_str());
+		strcpy(chuyenBay->MaCB, data.c_str());
 		
 		//doc ngay thang nam
-		f >> chuyenBay.NgayGioKH.ngay;
-		f >> chuyenBay.NgayGioKH.thang;
-		f >> chuyenBay.NgayGioKH.nam;
-		f >> chuyenBay.NgayGioKH.gio;
-		f >> chuyenBay.NgayGioKH.phut;
+		f >> chuyenBay->NgayGioKH.ngay;
+		f >> chuyenBay->NgayGioKH.thang;
+		f >> chuyenBay->NgayGioKH.nam;
+		f >> chuyenBay->NgayGioKH.gio;
+		f >> chuyenBay->NgayGioKH.phut;
 		f.ignore();
-		getline(f,data);	strcpy(chuyenBay.NoiDen, data.c_str());
-		getline(f,data);	strcpy(chuyenBay.TrangThai, data.c_str());
-		getline(f,data);	strcpy(chuyenBay.SoHieuMB, data.c_str());
+		getline(f,data);	strcpy(chuyenBay->NoiDen, data.c_str());
+		getline(f,data);	strcpy(chuyenBay->TrangThai, data.c_str());
+		getline(f,data);	strcpy(chuyenBay->SoHieuMB, data.c_str());
 		
 		//xu li danh sach ve
 		getline(f,data);
@@ -211,14 +355,14 @@ void DocFileChuyenBay(ListCB &listCB) {
 		DSVE.n = soluongve;
 		
 		//tao vung nho chua ve
-		DSVE.dsVe = new VeHanhKhach[ListSoLuongGhe[chuyenBay.SoHieuMB]];
+		DSVE.dsVe = new VeHanhKhach[ListSoLuongGhe[chuyenBay->SoHieuMB]];
 				
 		//doc file sanh sach ve
 		for(int i = 0; i < soluongve; i++) {
 			getline(f,data);	strcpy(DSVE.dsVe[i].SoCMND, data.c_str());
 			getline(f,data);	strcpy(DSVE.dsVe[i].SoVe, data.c_str());
 		}
-		chuyenBay.dsVe = DSVE;
+		chuyenBay->dsVe = DSVE;
 		NodeCB *node = CreateNodeCB(chuyenBay);
 		AddTailCB(listCB, node);
 	}
@@ -260,6 +404,25 @@ void GhiFileMayBay(ListMayBay &rootMB) {
 	for(int i = 0; i < rootMB.n; i++) {
 		f << rootMB.DSMayBay[i]->SoHieuMB << endl << rootMB.DSMayBay[i]->LoaiMB << endl << rootMB.DSMayBay[i]->SoDay << endl << rootMB.DSMayBay[i]->SoDong << endl;
 	}
+	f.close();
+}
+
+void GhiFileChuyenBay(ListCB &listCB) {
+	fstream f;
+	f.open("DSCHUYENBAY.txt", ios::out);
+	while(listCB.head!=NULL){
+		f << listCB.head->chuyenBay->MaCB << endl << listCB.head->chuyenBay->NgayGioKH.ngay << endl;
+		f << listCB.head->chuyenBay->NgayGioKH.thang << endl << listCB.head->chuyenBay->NgayGioKH.nam << endl;
+		f << listCB.head->chuyenBay->NgayGioKH.gio << endl << listCB.head->chuyenBay->NgayGioKH.phut << endl;
+		f << listCB.head->chuyenBay->NoiDen << endl << listCB.head->chuyenBay->TrangThai << endl;
+		f << listCB.head->chuyenBay->SoHieuMB << endl << listCB.head->chuyenBay->dsVe.n << endl;
+		for(int i = 0; i < listCB.head->chuyenBay->dsVe.n; i++){
+			f << listCB.head->chuyenBay->dsVe.dsVe[i].SoCMND << endl << listCB.head->chuyenBay->dsVe.dsVe[i].SoVe << endl;
+		}
+		listCB.head = listCB.head->pNext;
+	}
+	
+	
 	f.close();
 }
 
@@ -306,11 +469,6 @@ int GetKey()
 }
 
 /*XU LI DO HOA*/
-void setColor(int bgColor,int txtColor){
-    SetBGColor(bgColor);
-    SetColor(txtColor);
-}
-
 void ClearScreen(int x, int y, int x1, int y1){
 	SetBGColor(0);
 	for(int i=x;i<=x1;i++)
@@ -450,11 +608,11 @@ void FormChuyenBay(ListCB list){
 	//in du lieu
 	int i=0;
 	for(NodeCB *node = list.head; node != NULL; node = node->pNext){
-		gotoxy(37,8+i);	cout << node->chuyenBay.MaCB;
-		gotoxy(48,8+i);	cout << node->chuyenBay.NgayGioKH.ngay << "/" << node->chuyenBay.NgayGioKH.thang << "/" << node->chuyenBay.NgayGioKH.nam << " " << node->chuyenBay.NgayGioKH.gio << ":" << node->chuyenBay.NgayGioKH.phut;
-		gotoxy(68,8+i);	cout << node->chuyenBay.NoiDen;
-		gotoxy(89,8+i);	cout << node->chuyenBay.TrangThai;	
-		gotoxy(98,8+i);	cout << node->chuyenBay.SoHieuMB;	
+		gotoxy(37,8+i);	cout << node->chuyenBay->MaCB;
+		gotoxy(48,8+i);	cout << node->chuyenBay->NgayGioKH.ngay << "/" << node->chuyenBay->NgayGioKH.thang << "/" << node->chuyenBay->NgayGioKH.nam << " " << node->chuyenBay->NgayGioKH.gio << ":" << node->chuyenBay->NgayGioKH.phut;
+		gotoxy(68,8+i);	cout << node->chuyenBay->NoiDen;
+		gotoxy(89,8+i);	cout << node->chuyenBay->TrangThai;	
+		gotoxy(98,8+i);	cout << node->chuyenBay->SoHieuMB;	
 		i++;
 	}
 }
@@ -575,7 +733,7 @@ char *GetText(int x, int y, int length, int type, bool &check)
 	char key;
 	gotoxy(x,y);
 	while(check){
-		key = GetKey();
+		 key = GetKey();
 		if(key == ENTER && strlen(text) > 0){
 			return text;
 			check=false;
@@ -629,140 +787,6 @@ char *GetText(int x, int y, int length, int type, bool &check)
 	}	
 }
 
-int nhapnam(int x=wherex(), int y=wherey()){
-	int nam=0;
-	int n, dem=0;
-	gotoxy(x,y);
-	while(dem!=4){
-		n=getch(); 
-		if(n==8){	//khi an phim delete
-			gotoxy(x,y); cout << "    "; gotoxy(x,y);
-			nam=0; dem=0;
-			continue;
-		}
-		if(n==9) return -2;	//nhan tab tra ve 0, neu gia tri nhap =0 thi khong lay
-		if(n==27) return -1;	////tra ve tru 1 thi khong nhap tiep nua va khong lay gia tri vua nhap
-		n-=48;
-		//if(n==-35) return 0;	//phim enter
-		if((n<0 || n>9)||(n==0 && dem==0)) continue;
-		dem++;
-		cout << n;
-		nam+=n*pow(10,4-dem);	
-	}
-	return nam;	
-}
-
-int nhapnt(int kieu=0, int x=wherex(), int y=wherey()){	//kieu: 0 ngay, 1 nhap thang, 2 nam,   3 nhap gio, 4 kieu phut
-	int kthang=0, kgio=0, kphut=0;
-	if(kieu==1) {
-		kthang=1; x=x+3;
-	}	
-	if(kieu==2) {
-		x=x+6;
-		return nhapnam(x,y);
-	}
-	if(kieu==3) {
-		kgio=1;
-	}
-	if(kieu==4) kphut=1;
-	
-	gotoxy(x,y);
-	int ngay=0, dem=0, n;
-	while(1){
-		n=getch();
-		if(n==8) {
-			gotoxy(x,y); cout << "  "; gotoxy(x,y);
-			ngay=0;dem=0;
-			continue;
-		}
-		if(n==9) return -2;	//nhan tab tra ve -2, neu gia tri nhap =0 thi khong lay
-		if(n==27) return -1;	//tra ve tru 1 thi khong nhap tiep nua va khong lay gia tri vua nhap	
-		n-=48;	//enter 13   -48 = -35
-	//	if(n==-35 && ngay==0) return 0;
-	//	if(n==-35 && (kieu==3 || kieu==4) && dem==1) return ngay;//
-		if(n==-35 && ngay>=1 && ngay<=3+(kthang*6)+(kgio*6)+(kphut*6)) {		//neu nhap 1-2-3 nhan enter thi dung lai
-			gotoxy(x,y); cout << "0" << ngay; 
-			return ngay;
-		}
-		if(n<0 || n>9) continue;
-		if((n>=4-(kthang*2)-(kgio*1)+(kphut*2)) && dem==0){
-			cout << "0" << n;
-			return n;
-		}
-		if(dem==0) {
-			dem++;
-			ngay=n;
-			cout << n;
-			continue;
-		}
-		if(n==0 && (kieu==3||kieu==4)) return 0;
-		if(n==0 && ngay==0) continue;
-		
-		if(ngay==3-(kthang*2)-(kgio*1)+(kphut*3)) 
-			if(n>=2+(kthang*1)+(kgio*2)) continue;
-		if(dem==1){
-			cout << n;
-			return ngay*10+n;
-		}
-	}
-}
-
-void NgayHT(Time time, int x, int y){
-	gotoxy(x,y);
-	(time.ngay)<10 ? cout << "0" << time.ngay : cout << time.ngay;
-	(time.thang)<10 ? cout <<" 0" << time.thang:cout << " " << time.thang;
-	(time.nam)<10 ? cout <<" " << time.nam : cout << " " << time.nam;
-	setColor(0,15); gotoxy(x+2,y); cout << "/";	gotoxy(x+5,y); cout << "/";
-}
-
-bool NhapNgay(Time &time, int x, int y){
-	int kieu=0, dd, mm, yy;
-	setColor(0,TXT_CLR);
-	NgayHT(time, x,y); 
-	Time h;
-	h.ngay=nhapnt(0,x,y); 	//Nhap ngay		
-		if(h.ngay==-1) return false;	//bam esc thi thoat
-		if(h.ngay==-2) {		//Neu bam phim tab thi tra ve ngay he thong
-			h.ngay=time.ngay;
-			gotoxy(x,y); time.ngay<10 ? cout << "0" << time.ngay:cout << time.ngay;
-		}
-	h.thang=nhapnt(1,x,y);	//Nhap thang
-		if(h.thang==-1) return false;	//bam esc thi thoat
-		if(h.thang==-2) {	//neu bam phim tab thi tra ve thang he thong
-			h.thang=time.thang;
-			gotoxy(x+3,y); time.thang<10?cout << "0" << time.thang:cout << time.thang;
-		}
-	while(h.ngay>thang[h.thang]+(h.thang==2)?1:0){	//kiem tra xem ngay vua nhap co hop he so voi thang khong
-		gotoxy(x,y); cout << "  ";	gotoxy(x,y);
-		h.ngay=nhapnt(0,x,y);	//Nhap cho den khi ngay dung voi thang	
-			if(h.ngay==-1) return false;
-			if(h.ngay==-2) {		//neu bam phim tab thi tra ve ngay he thong va quay lai kiem tra xem co hop le khong (neu ngay he thong =30 va thang minh nhap =2 thi nhap lai)
-				h.ngay=time.ngay;
-				gotoxy(x,y); time.ngay<10?cout << "0" << time.ngay:cout << time.ngay;
-			}
-	}
-	h.nam=nhapnt(2,x,y); 	
-		if(h.nam==-1) return false;
-		if(h.nam==-2) {
-			h.nam=time.nam; gotoxy(x+6, y); cout << time.nam;
-		}
-	while(h.thang==2 && h.ngay > thang[2]+NamNhuan(h.nam)) {	//neu nhap nam (nam nhuan) roi lam cho ngay cua thang 2 khong hop le thi nhap lai ngay
-		gotoxy(x,y); cout << "  ";	gotoxy(x,y);
-		h.ngay=nhapnt(0,x,y);		//nhap lai ngay
-			if(h.ngay==-1) return false;	//nhan esc thi thoat luon
-			if(h.ngay==-2) h.ngay=32;					//neu khong nhap ngay ma bam phim tab de bo qua thi cho dk bi sai quay lai nhap (khong duoc de trong)
-	}
-	//Luu gia tri cap nhat vao time
-	if(h.ngay!=0) time.ngay=h.ngay;
-	else if(h.ngay==0 || h.ngay==-1){
-		NgayHT(time,x,y); 
-		return false;
-	}
-	if(h.thang!=0) time.thang=h.thang;
-	if(h.nam!=0) time.nam=h.nam;
-	return true;
-}
-
 void SearchMBScreen(char *s){
 	ClearScreen(35,21,115,28);
 	setColor(25, 4);
@@ -773,6 +797,18 @@ void SearchMBScreen(char *s){
 	SetBGColor(0);
 	gotoxy(70,24); cout << "                ";
 	gotoxy(70,24);
+}
+
+void SearchCBScreen( char *s){
+	ClearScreen(35,21,115,28);
+	setColor(25, 4);
+	gotoxy(45,22);	cout << s;
+	gotoxy(45,23);	cout << "                                                      ";
+	gotoxy(45,24);	cout << "       NHAP MA CHUYEN BAY                             ";
+	gotoxy(45,25);	cout << "                                                      ";
+	SetBGColor(0);
+	gotoxy(71,24); cout << "                ";
+	gotoxy(71,24);
 }
 
 void ThongTinMBScreen(char *title,MayBay *mb=NULL){
@@ -812,7 +848,9 @@ void ThongTinCBScreen(char *title){
 	gotoxy(68,24); cout << "                ";	
 	gotoxy(55,26); cout << "                                        ";		
 	gotoxy(88,24); cout << "                ";
-	gotoxy(88,24); cout << "26/07/2019 16:15";	
+	SetColor(8);
+	gotoxy(88,24); cout << "26/07/2019 16:15";
+	SetColor(TXT_CLR);	
 }
 
 int Search_MB(ListMayBay &rootMB, char *SHMB){
@@ -977,35 +1015,97 @@ BEGIN:
 	}
 }
 
-ChuyenBay *NhapThongTinCB(bool &check){
-	ChuyenBay *cb;
-	char *MaCB, *NoiDen, *TrangThai, *SoHieuMB;
+bool NhapGio(Time &time, int x=wherex(), int y=wherey()){
+	int kieu=0;
+	setColor(0,8);
+	gotoxy(x,y); time.gio<10?cout << "0" << time.gio : cout << time.gio;
+	time.phut<10?cout <<"0" << time.phut:cout << "" << time.phut;
+	setColor(0,15); gotoxy(x+2,y); cout << ":";	gotoxy(x+5,y);
 	
+	Time h;
+	h.gio=nhapnt(3,x,y);
+		if(h.gio==-1) return false;	//tuc la ham nhap nhap vao esc
+		if(h.gio==-2) {
+			h.gio=time.gio; //??????????????????????????
+			gotoxy(x,y); time.gio<10?cout << "0" << time.gio:cout << time.gio;
+		}
+		if(h.gio==0) {
+			gotoxy(x,y); cout << "0" << h.gio;
+		}
+	h.phut=nhapnt(4,x+3,y);	
+		if(h.phut==-1) return false;
+		if(h.phut==-2) {
+			h.phut = time.phut;	//???????????????????????
+			gotoxy(x+3,y); time.phut<10?cout << "0" << time.phut:cout << time.phut;
+		}
+		if(h.phut==0) {
+			gotoxy(x+3,y); cout << "0" << h.phut;
+		}
+	//Luu gia tri cap nhat vao time
+	if(h.phut!=-2) time.gio=h.gio;
+	if(h.gio!=-2) time.phut=h.phut;
+	return true;
+}
+
+ChuyenBay *NhapThongTinCB(bool &check){
+	ChuyenBay *cb = new ChuyenBay();
+	char *MaCB, *NoiDen, *TrangThai, *SoHieuMB;
 	MaCB = new char[15];
 	SoHieuMB = new char[15];
 	NoiDen = new char[40];
 	TrangThai = new char[4];
-	
+	Time time;
+
+
 	
 	MaCB = GetText(46, 24, 15, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
 	SoHieuMB = GetText(68, 24, 15, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
+	NhapNgay(time, 88, 24);
+	NhapGio(time, 99,24);	
 	NoiDen = GetText(55, 26, 39, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
-		
-						
-//	mb = new MayBay();
-//	strcpy(mb->LoaiMB, LoaiMB);
-//	strcpy(mb->SoHieuMB, SHMB);
-//	mb->SoDay = atoi(SoDay);
-//	mb->SoDong = atoi(SoDong);
-//	mb->LoaiMB[strlen(mb->LoaiMB)] = '\0';
+			
+	strcpy(cb->MaCB, MaCB) ;
+	strcpy(cb->NoiDen, NoiDen) ;
+	strcpy(cb->SoHieuMB, SoHieuMB) ;
+	cb->NgayGioKH.ngay = time.ngay;
+	cb->NgayGioKH.thang = time.thang;
+	cb->NgayGioKH.nam = time.nam;
+	cb->NgayGioKH.gio = time.gio;
+	cb->NgayGioKH.phut = time.phut;
+	strcpy(cb->TrangThai, "1");		//tao may bay nen trang thai phai la con ve
+	cb->dsVe.n = 0;
+	cb->dsVe.dsVe = NULL;		//set danh sach ve rong
 	return cb;
 }
 
+bool DeleteCB(ListCB &listCB, char *MaCB){
+	if(listCB.head == NULL) return false;
+	if( strcmp(listCB.head->chuyenBay->MaCB, MaCB) == 0 ){
+		NodeCB *p = listCB.head;
+		listCB.head = listCB.head ->pNext;
+		delete p;
+		return true;
+	}
+	NodeCB *pos = listCB.head;		//vi tri node truoc
+	for(NodeCB *p = listCB.head; p != NULL; p = p->pNext){
+		cout << "\nMa Chuyen bay : " << p->chuyenBay->MaCB;
+		if( strcmp(MaCB, p->chuyenBay->MaCB) == 0 ){
+			NodeCB *k = pos ->pNext;
+			pos ->pNext = k ->pNext;
+			delete k;
+
+			return true;
+		}
+		pos = p;
+	}
+	return false;
+}
+
 void ChuyenBayController(ListMayBay &rootMB, ListHanhKhach &rootHK, ListCB &listCB) {
-	
+	bool change=false;
 START:
 	bool check=true;
 	//initial x, y
@@ -1039,14 +1139,33 @@ BEGIN:
 					ThongTinCBScreen("                    THEM CHUYEN BAY MOI                           ");
 					cb = NhapThongTinCB(check);
 					if(!cb) goto START;
-//					getch();
-					
+					NodeCB *node = CreateNodeCB(cb);
+					if(listCB.head == NULL || (strcmp(listCB.head->chuyenBay->MaCB, cb->MaCB) > 0)){
+						change=AddHeadCB(listCB, node);
+					}
+					else if((strcmp(listCB.tail->chuyenBay->MaCB, cb->MaCB) < 0)){
+						change=AddTailCB(listCB, node);
+					}
+					else{
+						change=AddAfterCB(listCB, node);
+					}
 					goto START;
 							
 				}
 				else if(SelectedItem == 1){
-				
-				
+					SearchCBScreen("                    HUY CHUYEN BAY                    ");
+					char *MaCB = new char[15];
+					MaCB = GetText(71, 24, 15 , 0, check);
+						if(!check) {ClearScreen(35,21,115,28); goto START;}
+					change = DeleteCB(listCB, MaCB);
+					if(change){
+						clrscr();
+						cout << "OK";
+					}else{
+						clrscr();
+						cout << " Not OK";
+					}
+					goto START;
 				}	
 				else if(SelectedItem == 2){
 					
@@ -1054,6 +1173,14 @@ BEGIN:
 				}		
 			}
 			case ESC: {
+				if(change){
+					if(ConfirmChange(50,20," BAN CO MUON THAY DOI ")){
+						GhiFileChuyenBay(listCB);
+					}
+				}
+//				rootMB.n=0;
+//				DocFileMayBay(rootMB);
+				DocFileChuyenBay(listCB);
 				check=false;
 			}
 		}
@@ -1098,6 +1225,19 @@ BEGIN:
 	
 } 
 
+void InsertVe(DanhSachVe &dsVe, VeHanhKhach ve){
+	if(dsVe.n == 0){
+		strcpy(dsVe.dsVe[0].SoCMND, ve.SoCMND);
+		strcpy(dsVe.dsVe[0].SoVe, ve.SoVe);
+		dsVe.n++;
+	}
+	else{
+		strcpy(dsVe.dsVe[dsVe.n].SoCMND, ve.SoCMND);
+		strcpy(dsVe.dsVe[dsVe.n].SoVe, ve.SoVe);
+		dsVe.n++;
+	}
+}
+
 int main()
 {
 	ListMayBay rootMB;
@@ -1110,16 +1250,73 @@ int main()
 	DocFileChuyenBay(listCB);
 		
 	MenuController(rootMB, rootHK, listCB);	
-	
+
+
+//	ChuyenBay *cb = new ChuyenBay();
+//
+//	strcpy(cb->MaCB, "CB01") ;
+//	strcpy(cb->NoiDen, "DA LAT") ;
+//	strcpy(cb->SoHieuMB, "MB02") ;
+//	cb->NgayGioKH.ngay = 27;
+//	cb->NgayGioKH.thang = 7;
+//	cb->NgayGioKH.nam = 2019;
+//	cb->NgayGioKH.gio = 20;
+//	cb->NgayGioKH.phut = 9;
+//	cb->dsVe.n = 0;
+//	cb->dsVe.dsVe = NULL;		//set danh sach ve rong
+//	
+//	
+//	
+//	//xu li danh sacsh ve
+//	DanhSachVe DSVE;
+//	DSVE.n = 0;
+//	DSVE.dsVe = NULL;
+//	DSVE.dsVe = new VeHanhKhach[3];
+//	
+//	VeHanhKhach ve1;
+//	strcpy(ve1.SoCMND, "10000");
+//	strcpy(ve1.SoVe, "A01");
+//	InsertVe(DSVE, ve1);
+//	
+//	VeHanhKhach ve2;
+//	strcpy(ve2.SoCMND, "20000");
+//	strcpy(ve2.SoVe, "A02");
+//	InsertVe(DSVE, ve2);
+//	
+//	VeHanhKhach ve3;
+//	strcpy(ve3.SoCMND, "30000");
+//	strcpy(ve3.SoVe, "A03");
+//	InsertVe(DSVE, ve3);
+//	
+//	cb->dsVe = DSVE;
+//	NodeCB *node = CreateNodeCB(cb);
+//	AddHeadCB(listCB, node);
+//	
+//	for(int i = 0; i < DSVE.n; i++){
+//		cout << "\nSTT: " << i;
+//		cout << "\nSo CMND: " << DSVE.dsVe[i].SoCMND;
+//		cout << "\nSo Ve: " << DSVE.dsVe[i].SoVe << endl;
+//	}
+//	
+//
 //	while(listCB.head!=NULL){
-//		cout << "\nMa CB: " << listCB.head->chuyenBay.MaCB;
-//		cout << "\nNoi den: " << listCB.head->chuyenBay.NoiDen;
-//		cout << "\nSHMB: " << listCB.head->chuyenBay.SoHieuMB;
-//		cout << "\nTrang thai: " << listCB.head->chuyenBay.TrangThai;
-//		cout << "\nNgay gio khoi hanh: " << listCB.head->chuyenBay.NgayGioKH.ngay << "\t" << listCB.head->chuyenBay.NgayGioKH.thang << "\t" << listCB.head->chuyenBay.NgayGioKH.nam << "\t" << listCB.head->chuyenBay.NgayGioKH.gio << "\t" << listCB.head->chuyenBay.NgayGioKH.phut;
+//		cout << "\n\n\n\nMa CB: " << listCB.head->chuyenBay->MaCB;
+//		cout << "\nNoi den: " << listCB.head->chuyenBay->NoiDen;
+//		cout << "\nSHMB: " << listCB.head->chuyenBay->SoHieuMB;
+//		cout << "\nTrang thai: " << listCB.head->chuyenBay->TrangThai;
+//		cout << "\nNgay gio khoi hanh: " << listCB.head->chuyenBay->NgayGioKH.ngay << "\t" << listCB.head->chuyenBay->NgayGioKH.thang << "\t" << listCB.head->chuyenBay->NgayGioKH.nam << "\t" << listCB.head->chuyenBay->NgayGioKH.gio << "\t" << listCB.head->chuyenBay->NgayGioKH.phut;
 //		
-//		cout << "\nDS ve: " << listCB.head->chuyenBay.dsVe.dsVe[1].SoCMND;
-//		cout << "\nDS ve: " << listCB.head->chuyenBay.dsVe.dsVe[1].SoVe;
+//		cout << "\nSo luong ve: " << listCB.head->chuyenBay->dsVe.n;
+////		cout << "\nDS ve: " << listCB.head->chuyenBay->dsVe.dsVe->SoCMND;
+//		
+//		if(listCB.head->chuyenBay->dsVe.dsVe != NULL){
+//			cout << "\nCo ve";
+//		}
+//		else cout <<"\nKhong co ve";
+//		
+//		for(int i = 0; i < listCB.head->chuyenBay->dsVe.n; i++){
+//			cout << "\n\tVe "<< i << ": " << listCB.head->chuyenBay->dsVe.dsVe[i].SoCMND << "\t" << listCB.head->chuyenBay->dsVe.dsVe[i].SoVe;
+//		}
 //		
 //		listCB.head = listCB.head->pNext;
 //	}
