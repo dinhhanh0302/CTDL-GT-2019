@@ -26,10 +26,11 @@ using namespace std;
 const int MAX_PLANES = 300;
 
 map<string, int> ListSoLuongGhe;
-char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " DANH SACH HANH KHACH  "};
+char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " QUAN LI VE - THONG KE "};
 char ItemMayBay[3][20] = {"  THEM MAY BAY    ", "  XOA MAY BAY     ", "  HIEU CHINH MB   "};
 char ItemChuyenBay[3][20] = {"  THEM CHUYEN BAY ", "  XOA CHUYEN BAY  ", "  HIEU CHINH CB   "};
-
+char ItemQuanLi[5][30] = {"    DAT VE MAY BAY     ", " DANH SACH HANH KHACH  ", " DANH SACH CHUYEN BAY  ", "  DANH SACH VE TRONG   ", "  SO LUOT THUC HIEN CB "};
+//                                                                                   char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " QUAN LI VE - THONG KE "};	
 int thang[13]={0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 int NamNhuan(int nam){
 	return (nam%4==0 && nam%100!=0 || nam%400==0)? 1: 0;
@@ -89,8 +90,8 @@ struct HanhKhach
 {
 	char SoCMND[10];
 	char Ho[20];
-	char Ten[20];
-	char Phai[5];
+	char Ten[10];
+	int Phai;
 };
 
 struct ListHanhKhach
@@ -98,6 +99,7 @@ struct ListHanhKhach
 	HanhKhach hanhKhach;
 	ListHanhKhach *pLeft, *pRight;
 };
+typedef struct ListHanhKhach* ListHK;
 
 void setColor(int bgColor,int txtColor){
     SetBGColor(bgColor);
@@ -237,35 +239,54 @@ bool NhapNgay(Time &time, int x=wherex(), int y=wherey()){
 
 /* XU LI VE NODE HANH KHACH */
 //tao BST hanh khach
-ListHanhKhach *Tao_BST(HanhKhach hanhKhach) {
-	ListHanhKhach *node = new ListHanhKhach();
+ListHK Tao_BST(HanhKhach hanhKhach) {
+	ListHK node;
 	node->hanhKhach = hanhKhach;
 	node->pLeft = node->pRight = NULL;
 	return node;
 }
 
 //them moi hanh khach
-void Insert_BST(ListHanhKhach *&rootHK, HanhKhach hanhKhach) {
-	if(rootHK == NULL) {
-		rootHK = Tao_BST(hanhKhach);
-		return;
+void InsertHK(ListHK &t, HanhKhach hanhkhach){
+//	cout << "\nCMND: " << hanhkhach.SoCMND << "\t" << hanhkhach.Ho << "\t" << hanhkhach.Ten << "\t" <<hanhkhach.Phai;
+	if(t==NULL){
+		ListHanhKhach* p = new ListHanhKhach;
+		p->hanhKhach = hanhkhach;
+		p->pLeft = p->pRight = NULL;
+		t = p;
 	}
-	else {
-		//strcmp(A, B) so sanh 2 chuoi: A > B => -1, A == B => 0, A < B => -1
-		if(strcmp(rootHK->hanhKhach.SoCMND, hanhKhach.SoCMND) == 1) {
-			Insert_BST(rootHK->pLeft, hanhKhach);
-		}
-		else {
-			Insert_BST(rootHK->pRight, hanhKhach);
-		}
-	}			
+ else {
+		if(strcmp(t->hanhKhach.SoCMND, hanhkhach.SoCMND) > 0) InsertHK(t->pLeft, hanhkhach);
+		else InsertHK(t->pRight, hanhkhach);
+	}
+	
 }
 
-void NLR_HanhKhach(ListHanhKhach *root) {
-	if(root != NULL) {
-		cout << "\nSo CMND: " << root->hanhKhach.SoCMND << "\n" << root->hanhKhach.Ho << "\n" << root->hanhKhach.Ten << "\n" << root->hanhKhach.Phai << endl;
-		NLR_HanhKhach(root->pLeft);
-		NLR_HanhKhach(root->pRight);
+void Preorder (ListHK tree){ 
+	if(tree != NULL) { 
+	   	cout <<"\ndanh sach CMND: " << tree->hanhKhach.SoCMND << "\t" << tree->hanhKhach.Ho << "\t" << tree->hanhKhach.Ten << "\t" << tree->hanhKhach.Phai;	
+	    Preorder(tree->pLeft);
+	    Preorder (tree->pRight);
+  	}
+}
+
+ListHK SearchHK(ListHK tree, char* CM){
+	if(tree==NULL) return NULL;
+	if(strcmp(tree->hanhKhach.SoCMND,CM)>0) SearchHK(tree->pLeft,CM);
+	else if(strcmp(tree->hanhKhach.SoCMND,CM)<0)SearchHK(tree->pRight,CM);
+	else return tree;
+}
+
+void InsertVe(DanhSachVe &dsVe, VeHanhKhach ve){
+	if(dsVe.n == 0){
+		strcpy(dsVe.dsVe[0].SoCMND, ve.SoCMND);
+		strcpy(dsVe.dsVe[0].SoVe, ve.SoVe);
+		dsVe.n++;
+	}
+	else{
+		strcpy(dsVe.dsVe[dsVe.n].SoCMND, ve.SoCMND);
+		strcpy(dsVe.dsVe[dsVe.n].SoVe, ve.SoVe);
+		dsVe.n++;
 	}
 	return;
 }
@@ -351,18 +372,25 @@ void DocFileChuyenBay(ListCB &listCB) {
 		//xu li danh sach ve
 		getline(f,data);
 		soluongve = atoi(data.c_str());
-		DanhSachVe DSVE;
-		DSVE.n = soluongve;
-		
-		//tao vung nho chua ve
-		DSVE.dsVe = new VeHanhKhach[ListSoLuongGhe[chuyenBay->SoHieuMB]];
-				
-		//doc file sanh sach ve
-		for(int i = 0; i < soluongve; i++) {
-			getline(f,data);	strcpy(DSVE.dsVe[i].SoCMND, data.c_str());
-			getline(f,data);	strcpy(DSVE.dsVe[i].SoVe, data.c_str());
+		if(soluongve != 0){
+			DanhSachVe DSVE;
+			DSVE.n = soluongve;
+			
+			//tao vung nho chua ve
+			DSVE.dsVe = new VeHanhKhach[ListSoLuongGhe[chuyenBay->SoHieuMB]];
+					
+			//doc file sanh sach ve
+			for(int i = 0; i < soluongve; i++) {
+				getline(f,data);	strcpy(DSVE.dsVe[i].SoCMND, data.c_str());
+				getline(f,data);	strcpy(DSVE.dsVe[i].SoVe, data.c_str());
+			}
+			chuyenBay->dsVe = DSVE;
 		}
-		chuyenBay->dsVe = DSVE;
+		else {
+			chuyenBay->dsVe.n = 0;
+			chuyenBay->dsVe.dsVe = NULL;
+		}
+	
 		NodeCB *node = CreateNodeCB(chuyenBay);
 		AddTailCB(listCB, node);
 	}
@@ -385,7 +413,7 @@ void DocFileMayBay(ListMayBay &rootMB) {
 		string SHMB = string(data) ;
 		strcpy(mayBay[i].SoHieuMB, data.c_str());
 		getline(f,data);	strcpy(mayBay[i].LoaiMB, data.c_str());
-		f >>mayBay[i].SoDay;
+		f >> mayBay[i].SoDay;
 		f >> mayBay[i].SoDong;
 		f.ignore();
 		ListSoLuongGhe[SHMB] = mayBay[i].SoDay*mayBay[i].SoDong;
@@ -426,34 +454,36 @@ void GhiFileChuyenBay(ListCB &listCB) {
 	f.close();
 }
 
-void Ghi_NLR_HanhKhach(ListHanhKhach *root) {
-	fstream f;
-	f.open("DSMAYBAY.txt", ios::out);
-	if(root != NULL) {
-		f << root->hanhKhach.SoCMND << endl << root->hanhKhach.Ho << endl << root->hanhKhach.Ten << endl << root->hanhKhach.Phai << endl << endl;
-		Ghi_NLR_HanhKhach(root->pLeft);
-		Ghi_NLR_HanhKhach(root->pRight);
-	}
-	f.close();
-}
+//void Ghi_NLR_HanhKhach(ListHanhKhach *root) {
+//	fstream f;
+//	f.open("DSMAYBAY.txt", ios::out);
+//	if(root != NULL) {
+//		f << root->hanhKhach.SoCMND << endl << root->hanhKhach.Ho << endl << root->hanhKhach.Ten << endl << root->hanhKhach.Phai << endl << endl;
+//		Ghi_NLR_HanhKhach(root->pLeft);
+//		Ghi_NLR_HanhKhach(root->pRight);
+//	}
+//	f.close();
+//}
 
-void DocFileHanhKhach(ListHanhKhach &rootHK) {
+void DocFileHanhKhach(ListHK &rootHK) {
 	string data;
 	fstream f; 
 	f.open("DSHANHKHACH.txt", ios::in);
 	if(f == NULL) return;
 	while(!f.eof()) {
 		HanhKhach hk;
-		f >> data;
+		getline(f,data);
 		if(data.size() == 0) break;
 		strcpy(hk.SoCMND, data.c_str());
-		f >> data;
+		getline(f,data);
 		strcpy(hk.Ho, data.c_str());
-		f >> data;
+		getline(f,data);
 		strcpy(hk.Ten, data.c_str());
-		f >> data;
-		strcpy(hk.Phai, data.c_str());
-//		Insert_BST(&rootHK, hk);		//them moi vao BST
+		f >> hk.Phai;
+		f.ignore();
+		InsertHK(rootHK, hk);		//them moi vao BST
+//		cout << "\n\ndata: " << data;
+//		cout << "\nCMND: " << hk.SoCMND << "\t" << hk.Ho << "\t" << hk.Ten << "\t" <<hk.Phai;
 	}
 	f.close();
 }
@@ -617,7 +647,7 @@ void FormChuyenBay(ListCB list){
 	}
 }
 
-void ChildScreen(ListMayBay &rootMB, ListHanhKhach &rootHK, ListCB &ListCB, int x, int y, int selectedItem, int choose, char ItemMayBay[3][20]) {	
+void ChildScreen(int x, int y, int selectedItem, int choose, char ItemMayBay[3][20]) {	
 	ProjectName();
 	DisplayText(MenuItem[choose], x, y + 4*0, TXT_CLR, BG_CLR);
 	//item con
@@ -655,6 +685,19 @@ void MainScreen(int choose, int x, int y) {
 	SetBGColor(0);
 }
 
+void QuanLiScreen(int choose, int x, int y) {
+	clrscr();
+	ProjectName();
+	for(int i = 0; i < 5; i++) {
+		if(i == choose)
+			DisplayText(ItemQuanLi[i], x, y + 4*i, TXT_CLR, BG_CLR);
+		else 
+			DisplayText(ItemQuanLi[i], x + 2, y + 4*i, TXT_CLR, BG_CLR);		
+	}
+	DisplayText(ItemQuanLi[choose], 4, 6 + 4*choose, TXT_CLR, SELECTED_CLR);
+	SetBGColor(0);
+}
+
 bool InsertDSMB(ListMayBay &rootMB, MayBay *mayBay){
 	if(rootMB.n == MAX_PLANES){
 		return false;
@@ -678,30 +721,6 @@ bool InsertDSMB(ListMayBay &rootMB, MayBay *mayBay){
 	}
 	return false;
 }
-
-//bool InsertDSVe(DanhSachVe &DSVE, VeHanhKhach *ve, int max){
-//	if(DSVE.n == max){
-//		return false;
-//	}
-//	else if(DSVE.n == 0 || strcmp(ve->SoCMND, DSVE.dsVe[rootMB.n-1]->SoHieuMB) > 0){
-//		rootMB.DSMayBay[rootMB.n] = mayBay;
-//		rootMB.n++;
-//		return true;
-//	}
-//	else{
-//		for(int i = 0; i < rootMB.n; i++){
-//			if(strcmp(mayBay->SoHieuMB, rootMB.DSMayBay[i]->SoHieuMB) < 0) {
-//				for(int j = rootMB.n; j > i; j--){
-//					rootMB.DSMayBay[j] = rootMB.DSMayBay[j-1];
-//				}
-//				rootMB.DSMayBay[i] = mayBay;
-//				rootMB.n++;
-//				return true;
-//			}
-//		}
-//	}
-//	return false;
-//}
 
 void InsertDigit(char* A, char kt, int &vt, int &dem){
 	int l=strlen(A);
@@ -811,6 +830,24 @@ void SearchCBScreen( char *s){
 	gotoxy(71,24);
 }
 
+void NhapVeScreen( char *s){
+	ClearScreen(35,21,115,28);
+	setColor(25, 4);
+	gotoxy(40,22);	cout << s;
+	gotoxy(40,23);	cout << "                                                                ";
+	gotoxy(40,24);	cout << " SO CMND             HO                        TEN              ";
+	gotoxy(40,25);	cout << "                                                                ";
+	gotoxy(40,26);	cout << " PHAI             ND                                            ";
+	gotoxy(40,27);	cout << "                                                                ";
+	SetBGColor(0);
+	gotoxy(49,24); cout << "          ";
+	gotoxy(64,24); cout << "                     ";	
+	gotoxy(91,24); cout << "           ";		
+	gotoxy(46,26); cout << "      ";
+	gotoxy(61,26); cout << "                                         ";
+	gotoxy(40,22);
+}
+
 void ThongTinMBScreen(char *title,MayBay *mb=NULL){
 	ClearScreen(35,21,115,28);
 	setColor(25, 4);
@@ -860,7 +897,7 @@ int Search_MB(ListMayBay &rootMB, char *SHMB){
 	return -1;
 }
 
-MayBay *Return_MB(ListMayBay &rootMB, char *SHMB){
+MayBay *SearchMB(ListMayBay &rootMB, char *SHMB){
 	for(int i = 0; i < rootMB.n; i++){
 		if(strcmp(rootMB.DSMayBay[i]->SoHieuMB, SHMB) == 0) return rootMB.DSMayBay[i];
 	}
@@ -910,7 +947,7 @@ MayBay *NhapThongTinMB(bool &check){
 }
 
 //ham con
-void MayBayController(ListMayBay &rootMB, ListHanhKhach &rootHK, ListCB &listCB) {
+void MayBayController(ListMayBay &rootMB) {
 	bool change = false;
 START:
 	bool check=true;
@@ -922,7 +959,7 @@ START:
 	MayBay *mb;
 	char *SHMB;
 BEGIN:
-	ChildScreen(rootMB, rootHK, listCB, x, y, SelectedItem, 0, ItemMayBay);
+	ChildScreen( x, y, SelectedItem, 0, ItemMayBay);
 	DisplayTextItem(ItemMayBay[SelectedItem], x + 5, y + 4 + 4*SelectedItem, TXT_CLR, SELECTED_CLR);
 	while(check) {
 		key = GetKey();
@@ -987,7 +1024,7 @@ BEGIN:
 					SHMB = GetText(70, 24, 15, 0, check);
 						if(!check) {ClearScreen(35,21,115,28); goto START;}
 					mb = new MayBay();
-					mb = Return_MB(rootMB, SHMB);
+					mb = SearchMB(rootMB, SHMB);
 					if(mb != NULL){
 						ClearScreen(35,21,115,28);
 						ThongTinMBScreen("               THONG TIN MAY BAY HIEU CHINH                     ", mb);
@@ -1104,7 +1141,7 @@ bool DeleteCB(ListCB &listCB, char *MaCB){
 	return false;
 }
 
-void ChuyenBayController(ListMayBay &rootMB, ListHanhKhach &rootHK, ListCB &listCB) {
+void ChuyenBayController(ListCB &listCB) {
 	bool change=false;
 START:
 	bool check=true;
@@ -1116,7 +1153,7 @@ START:
 	ChuyenBay *cb;
 BEGIN:
 	
-	ChildScreen(rootMB, rootHK, listCB, x, y, SelectedItem, 1, ItemChuyenBay);
+	ChildScreen(x, y, SelectedItem, 1, ItemChuyenBay);
 	DisplayTextItem(ItemChuyenBay[SelectedItem], x + 5, y + 4 + 4*SelectedItem, TXT_CLR, SELECTED_CLR);
 	while(check) {
 		key = GetKey();
@@ -1180,14 +1217,185 @@ BEGIN:
 				}
 //				rootMB.n=0;
 //				DocFileMayBay(rootMB);
-				DocFileChuyenBay(listCB);
+//				DocFileChuyenBay(listCB);
 				check=false;
 			}
 		}
 	}
 }
 
-void MenuController(ListMayBay &rootMB, ListHanhKhach &rootHK, ListCB &listCB)
+NodeCB *SearchCB(ListCB listCB, char *NoiDen){
+	while(listCB.head!=NULL){
+		if( (strcmp(listCB.head->chuyenBay->TrangThai, "1") == 0) &&  (strcmp(listCB.head->chuyenBay->NoiDen, NoiDen) == 0)){
+			return listCB.head;
+		}
+		listCB.head = listCB.head->pNext;
+	}
+	return NULL;
+}
+
+void FormDatVe(ListMayBay &rootMB,NodeCB *nodeCB){
+//	clrscr();
+	gotoxy(50,5);
+	MayBay *mb = new MayBay();
+	mb = SearchMB(rootMB, nodeCB->chuyenBay->SoHieuMB);
+	for(int i=0; i < mb->SoDong; i++){
+		gotoxy(40,6+i);
+		for(int j=0; j < mb->SoDay; j++){
+//			char k[3];
+			cout << Alphabet[j];
+			if(i < 10) {
+					cout <<"0" << i << "\t\t";
+			}
+			else {
+					cout << i <<"\t\t";
+			}
+		}
+		cout << endl<<endl;
+	}
+}
+
+void DatVe(ListMayBay &listMB,ListHK &rootHK, ListCB &listCB, bool &check){
+START:
+	char key;
+	while(check){
+		key = GetKey();
+		if(key == ESC){
+			check =false;
+		}
+		if(key == ENTER){
+			char *Ho = new char[20];
+			Ho = GetText(64, 24, 20 , 0, check);
+		}
+		
+		
+	}
+	FormChuyenBay(listCB);
+	for(int i = 0; i < 5; i++) {
+		if(i != 0 ) DisplayText(ItemQuanLi[i], 6 , 6 + 4*i, TXT_CLR, DARK_CLR);		
+	}
+	
+	NhapVeScreen("                       DAT VE MAY BAY                           ");
+	char *SoCMND = new char[10];
+	char *Ho, *Ten, *Phai;
+	SoCMND = GetText(49, 24, 9 , 1, check);
+	if(!check) {ClearScreen(35,21,115,28); return;}
+	
+	ListHK item = NULL;
+	item = SearchHK(rootHK, SoCMND);
+	if(item){
+		gotoxy(49,24); cout << item->hanhKhach.SoCMND;
+		gotoxy(64,24); cout << item->hanhKhach.Ho;	
+		gotoxy(91,24); cout << item->hanhKhach.Ten;		
+		gotoxy(46,26);	(item->hanhKhach.Phai == 0) ? cout<<"Nam" : cout<<"Nu";
+	}
+	else{
+		Ho = new char[20];
+		Ten = new char[10];
+		Phai = new char[4];
+		Ho = GetText(64, 24, 20 , 0, check);
+		Ten = GetText(91, 24, 10 , 0, check);
+		Phai = GetText(46, 26, 4 , 1, check);
+		HanhKhach hk;
+		strcpy(hk.SoCMND, SoCMND);
+		strcpy(hk.Ho, Ho);
+		strcpy(hk.Ten, Ten);
+		hk.Phai = atoi(Phai);
+		InsertHK(rootHK, hk);
+	}
+	char *NoiDen = new char[40];
+	NoiDen = GetText(61, 26, 40 , 0, check);
+	NodeCB *nodeCB = SearchCB(listCB, NoiDen);
+	
+	// co chuyen bay ung voi noi den
+	if(nodeCB){
+		ClearScreen(30,5,120,20);
+		FormDatVe( listMB,nodeCB);
+		if(nodeCB->chuyenBay->dsVe.n == 0){
+			DanhSachVe DSVE;
+			DSVE.n = 0;
+			DSVE.dsVe = NULL;
+			DSVE.dsVe = new VeHanhKhach[3];
+			
+			VeHanhKhach ve1;
+			strcpy(ve1.SoCMND, SoCMND);
+			strcpy(ve1.SoVe, "A11");
+			InsertVe(DSVE, ve1);
+			if(nodeCB->chuyenBay->dsVe.dsVe == NULL){
+				nodeCB->chuyenBay->dsVe.dsVe = new VeHanhKhach[ListSoLuongGhe[nodeCB->chuyenBay->SoHieuMB]];
+			}
+			
+			cout << "ListSoLuongGhe[nodeCB->chuyenBay->SoHieuMB]: " << ListSoLuongGhe[nodeCB->chuyenBay->SoHieuMB];
+			getch();
+			
+			nodeCB->chuyenBay->dsVe = DSVE;
+			GhiFileChuyenBay(listCB);
+		
+			cout << "NULL";
+			getch();
+		}
+		else{
+			DanhSachVe DSVE;
+			VeHanhKhach ve1;
+			strcpy(ve1.SoCMND, SoCMND);
+			strcpy(ve1.SoVe, "A111");
+			InsertVe(nodeCB->chuyenBay->dsVe, ve1);
+			
+//			nodeCB->chuyenBay->dsVe = DSVE;
+			GhiFileChuyenBay(listCB);
+			cout <<"NOT NULL";
+			getch();
+		}
+		
+	}
+	
+	
+	getch();
+}
+
+void QuanLiController(ListMayBay &rootMB, ListHK &rootHK, ListCB &listCB){
+	int choose=0;
+START:
+	bool check=true;
+BEGIN:
+	
+	QuanLiScreen(choose, 4,6);
+	char key;
+	while(check) {
+		key = GetKey();
+		switch(key) {
+			case UP: {
+				choose--;
+				//ve lai menu
+				if(choose < 0) choose=0;
+				DisplayText(ItemQuanLi[choose], 5, 6 + 4*choose, TXT_CLR, SELECTED_CLR);
+				goto BEGIN;
+			}
+			case DOWN: {
+				choose++;
+				if(choose > 4) choose=4;
+				DisplayText(ItemQuanLi[choose], 5, 6 + 4*choose, TXT_CLR, SELECTED_CLR);
+				goto BEGIN;
+			}
+			case ENTER: {
+//				ClearScreen(0,0,120,28);
+				if(choose == 0){
+					DatVe(rootMB, rootHK, listCB, check);
+				}
+				
+				
+				ClearScreen(0,0,120,28);
+				goto BEGIN;
+			}
+			case ESC: {
+				return;
+			}
+		}
+	}
+	
+} 
+
+void MenuController(ListMayBay &rootMB, ListHK &rootHK, ListCB &listCB)
 {
 	int choose=0;
 BEGIN:
@@ -1211,8 +1419,9 @@ BEGIN:
 			}
 			case ENTER: {
 				ClearScreen(0,0,120,28);
-				if(choose == 0) MayBayController(rootMB, rootHK, listCB);
-				if(choose == 1) ChuyenBayController(rootMB, rootHK, listCB);
+				if(choose == 0) MayBayController(rootMB);
+				if(choose == 1) ChuyenBayController(listCB);
+				if(choose == 2) QuanLiController(rootMB, rootHK, listCB);
 				clrscr();
 				goto BEGIN;
 			}
@@ -1225,24 +1434,12 @@ BEGIN:
 	
 } 
 
-void InsertVe(DanhSachVe &dsVe, VeHanhKhach ve){
-	if(dsVe.n == 0){
-		strcpy(dsVe.dsVe[0].SoCMND, ve.SoCMND);
-		strcpy(dsVe.dsVe[0].SoVe, ve.SoVe);
-		dsVe.n++;
-	}
-	else{
-		strcpy(dsVe.dsVe[dsVe.n].SoCMND, ve.SoCMND);
-		strcpy(dsVe.dsVe[dsVe.n].SoVe, ve.SoVe);
-		dsVe.n++;
-	}
-}
 
 int main()
 {
 	ListMayBay rootMB;
 	rootMB.n = 0;
-	ListHanhKhach rootHK;
+	ListHK rootHK = NULL;
 	ListCB listCB;
 	listCB.head = listCB.tail = NULL;
 	DocFileMayBay(rootMB);
@@ -1250,6 +1447,16 @@ int main()
 	DocFileChuyenBay(listCB);
 		
 	MenuController(rootMB, rootHK, listCB);	
+	
+//	Preorder(rootHK);
+	
+	
+//	cout << SearchHK(rootHK, "2510")->hanhKhach.Ten;
+
+
+
+
+
 
 
 //	ChuyenBay *cb = new ChuyenBay();
