@@ -15,6 +15,8 @@
 #define BACKSPACE 8
 #define LEFT -75
 #define RIGHT -77
+#define TAB 9
+#define SPACE 32
 
 #define BG_CLR 41
 #define DARK_CLR 8
@@ -24,6 +26,7 @@
 using namespace std;
 
 const int MAX_PLANES = 300;
+const int T_SLEEP = 1000;
 
 map<string, int> ListSoLuongGhe;
 char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " QUAN LI VE - THONG KE "};
@@ -43,7 +46,7 @@ struct Time{
 
 struct VeHanhKhach
 {
-	char SoVe[5];
+	char SoVe[5]; 
 	char SoCMND[10];
 };
 
@@ -189,7 +192,7 @@ void NgayHT(Time time, int x=wherex(), int y=wherey()){
 	time.nam<10?cout <<" " << time.nam:cout << " " << time.nam;
 	setColor(0,15); gotoxy(x+2,y); cout << "/";	gotoxy(x+5,y); cout << "/";
 }
-bool NhapNgay(Time &time, int x=wherex(), int y=wherey()){
+bool NhapNgay(Time &time, int x, int y{
 	int kieu=0, dd, mm, yy;
 	setColor(0,8);
 	NgayHT(time, x,y); 
@@ -259,7 +262,6 @@ void InsertHK(ListHK &t, HanhKhach hanhkhach){
 		if(strcmp(t->hanhKhach.SoCMND, hanhkhach.SoCMND) > 0) InsertHK(t->pLeft, hanhkhach);
 		else InsertHK(t->pRight, hanhkhach);
 	}
-	
 }
 
 void Preorder (ListHK tree){ 
@@ -404,21 +406,19 @@ void DocFileMayBay(ListMayBay &rootMB) {
 	if(f == NULL) return;	
 	int  SL, i=0;		//vi tri hien tai trong mang
 	f >> SL;	f.ignore();
-//	cout <<"SL "<<SL;
-	MayBay *mayBay;
-	mayBay = new MayBay[SL];
 	while(!f.eof()) {
+		MayBay *mb = new MayBay();
 		getline(f,data);
 		if(data.size() == 0) break;
-		string SHMB = string(data) ;
-		strcpy(mayBay[i].SoHieuMB, data.c_str());
-		getline(f,data);	strcpy(mayBay[i].LoaiMB, data.c_str());
-		f >> mayBay[i].SoDay;
-		f >> mayBay[i].SoDong;
+		string SHMB = string(data) ;	//luu gia tri vao map
+		strcpy(mb->SoHieuMB, data.c_str());
+		getline(f,data);	strcpy(mb->LoaiMB, data.c_str());
+		f >> mb->SoDay;
+		f >> mb->SoDong;
 		f.ignore();
-		ListSoLuongGhe[SHMB] = mayBay[i].SoDay*mayBay[i].SoDong;
+		ListSoLuongGhe[SHMB] = mb->SoDay*mb->SoDong;
 //		cout << "SHMB: " << SHMB << "\t" << ListSoLuongGhe[SHMB] <<endl;
-		rootMB.DSMayBay[i] = &mayBay[i];
+		rootMB.DSMayBay[i] = mb;
 		rootMB.n++;
 		i++;
 	}
@@ -435,7 +435,7 @@ void GhiFileMayBay(ListMayBay &rootMB) {
 	f.close();
 }
 
-void GhiFileChuyenBay(ListCB &listCB) {
+void GhiFileChuyenBay(ListCB listCB) {
 	fstream f;
 	f.open("DSCHUYENBAY.txt", ios::out);
 	while(listCB.head!=NULL){
@@ -449,8 +449,6 @@ void GhiFileChuyenBay(ListCB &listCB) {
 		}
 		listCB.head = listCB.head->pNext;
 	}
-	
-	
 	f.close();
 }
 
@@ -744,8 +742,11 @@ void RemoveDigit(char* A, int &vt, int &dem){
 	dem--;
 }
 
-char *GetText(int x, int y, int length, int type, bool &check)
+char *GetText(int x, int y, int length, int type, bool &check, bool isValue=false, bool isSpace=false)
 {
+	//isValue kiem tra co gia tri cua text khong
+	//type=0 => chu thuong khong co space => nhap ma
+	//type=1 => nhap so
 	char *text = new char[length];	// hung ket qua
 	text[0] = '\0';
 	int dem=0, temp=0;		//temp vi tri hien tai trong mang char, dem la vi tri lon nhat cua chuoi nhap vao
@@ -782,6 +783,14 @@ char *GetText(int x, int y, int length, int type, bool &check)
 			} 
 			gotoxy(x,y);	cout << text;
 		}
+		if(isSpace==true && key == SPACE && (temp >= 0 && temp < length)){
+			InsertDigit(text, ' ', temp,dem);
+			SetBGColor(0);
+			for(int i=0; i <= length; i++){
+				gotoxy(x+i,y); cout << " ";
+			} 
+			gotoxy(x,y);	cout << text;
+		}
 		if(key == LEFT && temp>0){
 			temp--;
 			gotoxy(x+temp,y);
@@ -802,6 +811,9 @@ char *GetText(int x, int y, int length, int type, bool &check)
 		}
 		if(key == ESC){
 			check=false;
+		}
+		if(key == TAB && isValue==true){
+			return NULL;
 		}
 	}	
 }
@@ -848,7 +860,7 @@ void NhapVeScreen( char *s){
 	gotoxy(40,22);
 }
 
-void ThongTinMBScreen(char *title,MayBay *mb=NULL){
+void ThongTinMBScreen(char *title){
 	ClearScreen(35,21,115,28);
 	setColor(25, 4);
 	gotoxy(40,22);	cout << title;
@@ -858,16 +870,10 @@ void ThongTinMBScreen(char *title,MayBay *mb=NULL){
 	gotoxy(40,26);	cout << "  SO HIEU MB                   SO DAY        SO DONG            ";
 	gotoxy(40,27);	cout << "                                                                ";
 	SetBGColor(0);
-	gotoxy(57,24); cout << "                                        ";
-	gotoxy(53,26); cout << "               ";	
-	gotoxy(78,26); cout << "    ";		
-	gotoxy(93,26); cout << "    ";		
-	if(mb){
-		gotoxy(57,24); cout<<mb->LoaiMB;
-		gotoxy(53,26); 	cout<<mb->SoHieuMB;
-		gotoxy(78,26); 	cout<<mb->SoDay;
-		gotoxy(93,26);	cout<<mb->SoDong;
-	}
+	gotoxy(57,24); cout << "                                         ";
+	gotoxy(53,26); cout << "                ";	
+	gotoxy(78,26); cout << "     ";		
+	gotoxy(93,26); cout << "     ";		
 }
 
 void ThongTinCBScreen(char *title){
@@ -890,6 +896,7 @@ void ThongTinCBScreen(char *title){
 	SetColor(TXT_CLR);	
 }
 
+//tra ve vi tri
 int Search_MB(ListMayBay &rootMB, char *SHMB){
 	for(int i = 0; i < rootMB.n; i++){
 		if(strcmp(rootMB.DSMayBay[i]->SoHieuMB, SHMB) == 0) return i;
@@ -897,6 +904,7 @@ int Search_MB(ListMayBay &rootMB, char *SHMB){
 	return -1;
 }
 
+//tra ve gia tri du lieu
 MayBay *SearchMB(ListMayBay &rootMB, char *SHMB){
 	for(int i = 0; i < rootMB.n; i++){
 		if(strcmp(rootMB.DSMayBay[i]->SoHieuMB, SHMB) == 0) return rootMB.DSMayBay[i];
@@ -904,24 +912,37 @@ MayBay *SearchMB(ListMayBay &rootMB, char *SHMB){
 	return NULL;
 }
 
+//tra ve vi tri
+bool Update_MB(ListMayBay &rootMB, MayBay *mb){
+	for(int i = 0; i < rootMB.n; i++){
+		if(strcmp(rootMB.DSMayBay[i]->SoHieuMB, mb->SoHieuMB) == 0) {
+			rootMB.DSMayBay[i]->SoDong = mb->SoDong;
+			rootMB.DSMayBay[i]->SoDay = mb->SoDay;
+			strcpy(rootMB.DSMayBay[i]->LoaiMB, mb->LoaiMB);
+			return true;
+		}
+	}
+	return false;
+}
+
 bool Delete_MB(ListMayBay &rootMB, int i){
 	int j;
 	if(i < 0 || i > rootMB.n || rootMB.n == 0) return false;
 	for(int j=i+1; j<rootMB.n; j++)
 		rootMB.DSMayBay[j-1] = rootMB.DSMayBay[j];
-	rootMB.n--;
-	
-	for(int i = 0; i < rootMB.n; i++){
-		cout << "\nMay bay thu: " << i;
-		cout << "\nSo hieu MB: " << rootMB.DSMayBay[i]->SoHieuMB << "\t" << rootMB.DSMayBay[i]->LoaiMB << "\t" << rootMB.DSMayBay[i]->SoDay << "\t" << rootMB.DSMayBay[i]->SoDong << "\t" << endl;
-	}
-	
-	getch();
-	
+	rootMB.n--;	
 	return true;
 }
 
-MayBay *NhapThongTinMB(bool &check){
+void Notification(int x, int y, char *s){
+	setColor(6, 4);
+	gotoxy(x, y);	cout << s;
+	Sleep(T_SLEEP);
+	setColor(0, TXT_CLR);
+	gotoxy(x, y);	cout << "                                                                     ";
+}
+
+MayBay *NhapThongTinMB(ListMayBay &rootMB, bool &check){
 	MayBay *mb;
 	char *SoDong, *SoDay, *SHMB, *LoaiMB;
 	LoaiMB = new char[40];
@@ -930,19 +951,56 @@ MayBay *NhapThongTinMB(bool &check){
 	SoDay = new char[5];
 	LoaiMB = GetText(57, 24, 40, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
+SOHIEUMB:
 	SHMB = GetText(53, 26, 15, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
-	SoDay = GetText(78, 26, 4, 1, check);
+		if(SearchMB(rootMB, SHMB)){
+			SHMB = NULL;
+			Notification(45,21, "    SO HIEU MAY BAY BI TRUNG! VUI LONG NHAP LAI      ");
+			gotoxy(53,26);	cout<<"               ";
+			goto SOHIEUMB;
+		}
+	SoDay = GetText(78, 26, 2, 1, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
-	SoDong = GetText(93, 26, 4, 1, check);
-		if(!check) {ClearScreen(35,21,115,28); return NULL;}	
-						
+	SoDong = GetText(93, 26, 2, 1, check);
+		if(!check) {ClearScreen(35,21,115,28); return NULL;}				
 	mb = new MayBay();
 	strcpy(mb->LoaiMB, LoaiMB);
 	strcpy(mb->SoHieuMB, SHMB);
 	mb->SoDay = atoi(SoDay);
 	mb->SoDong = atoi(SoDong);
 	mb->LoaiMB[strlen(mb->LoaiMB)] = '\0';
+	return mb;
+}
+
+MayBay *HieuChinhMB(MayBay *mb, bool &check){
+	setColor(0, DARK_CLR);
+	gotoxy(53,26); 	cout<<mb->SoHieuMB;
+	setColor(0, TXT_CLR);
+	gotoxy(57,24); cout<<mb->LoaiMB;
+	gotoxy(78,26); 	cout<<mb->SoDay;
+	gotoxy(93,26);	cout<<mb->SoDong;
+	
+	char *SoDong, *SoDay, *LoaiMB;
+	LoaiMB = new char[40];
+	SoDong = new char[5];
+	SoDay = new char[5];
+	
+	LoaiMB = GetText(57, 24, 40, 0, check, true, true);
+		if(!check) {ClearScreen(35,21,115,28); return NULL;}
+	
+	if(strcmp(mb->LoaiMB, LoaiMB) != 0) 
+		strcpy(mb->LoaiMB, LoaiMB);
+		
+	SoDay = GetText(78, 26, 2, 1, check, true);
+		if(!check) {ClearScreen(35,21,115,28); return NULL;}
+	if(mb->SoDay != atoi(SoDay)) 
+		mb->SoDay=atoi(SoDay);
+		
+	SoDong = GetText(93, 26, 2, 1, check, true);
+		if(!check) {ClearScreen(35,21,115,28); return NULL;}		
+	if(mb->SoDong != atoi(SoDong))
+		mb->SoDong=atoi(SoDong);
 	return mb;
 }
 
@@ -955,6 +1013,7 @@ START:
 	int x=5, y=6;		
 	int SelectedItem = 0;
 	char key;
+	ClearScreen(0,0,120,28);
 	FormMayBay(rootMB);
 	MayBay *mb;
 	char *SHMB;
@@ -980,46 +1039,38 @@ BEGIN:
 			case ENTER: {
 				if(SelectedItem == 0){
 					ThongTinMBScreen("                 THEM MAY BAY VAO DANH SACH                     ");
-					mb = NhapThongTinMB(check);
+					mb = NhapThongTinMB(rootMB, check);
 					if(!mb) goto START;
 					change = InsertDSMB(rootMB, mb);
-					clrscr();
-					for(int i = 0; i < rootMB.n; i++){
-						cout << "\nMay bay thu: " << i;
-						cout << "\nSo hieu MB: " << rootMB.DSMayBay[i]->SoHieuMB << "\t" << rootMB.DSMayBay[i]->LoaiMB << "\t" << rootMB.DSMayBay[i]->SoDay << "\t" << rootMB.DSMayBay[i]->SoDong << "\t" << endl;
-					}
-					getch();	
 					ClearScreen(35,21,115,28);
-					goto START;
-							
+					goto START;			
 				}
 				else if(SelectedItem == 1){
 					SearchMBScreen("          NHAP SO HIEU MAY BAY CAN XOA                ");
 					SHMB = new char[15];
 					bool check = true;
+				XOAMB:
 					SHMB = GetText(70, 24, 15, 0, check);
 						if(!check) {ClearScreen(35,21,115,28); goto START;}
 					int delete_pos = Search_MB(rootMB, SHMB);
 					if(delete_pos != -1){
 						if(ConfirmChange(50,20," BAN CO CHAC MUON XOA?")){
-							if(Delete_MB(rootMB, delete_pos )){
-								change=true;
-							}
-							else{
-								clrscr();
-							}
+							change = Delete_MB(rootMB, delete_pos );
+//							ListSoLuongGhe.erase(mb->SoHieuMB);
 						}
 					}
 					else{
-						clrscr();
-						cout << "not ok";
-					}					
-					getch();
+						SHMB = NULL;
+						Notification(45,21, "    SO HIEU MAY BAY KHONG TON TAI TRONG HE THONG     ");
+						gotoxy(70,24);	cout<<"               ";
+						goto XOAMB;
+					}
 					goto START;
 				}	
 				else if(SelectedItem == 2){
 					SearchMBScreen("       NHAP SO HIEU MAY BAY CAN HIEU CHINH            ");
 					SHMB = new char[15];
+				HIEUCHINHMB:
 					bool check = true;
 					SHMB = GetText(70, 24, 15, 0, check);
 						if(!check) {ClearScreen(35,21,115,28); goto START;}
@@ -1027,15 +1078,21 @@ BEGIN:
 					mb = SearchMB(rootMB, SHMB);
 					if(mb != NULL){
 						ClearScreen(35,21,115,28);
-						ThongTinMBScreen("               THONG TIN MAY BAY HIEU CHINH                     ", mb);
-						
+						ThongTinMBScreen("               THONG TIN MAY BAY HIEU CHINH                     ");
+						mb = HieuChinhMB(mb, check);
+						change = Update_MB(rootMB, mb);
+						if(change){
+							ListSoLuongGhe[mb->SoHieuMB] = mb->SoDong*mb->SoDay;
+							Notification(45,21, "           HIEU CHINH MAY BAY THANH CONG             ");
+						}
 					}
 					else{
-						clrscr();
-						cout << "not ok";
+						SHMB = NULL;
+						Notification(45,21, "    SO HIEU MAY BAY KHONG TON TAI TRONG HE THONG     ");
+						gotoxy(70,24);	cout<<"               ";
+						goto HIEUCHINHMB;
 					}
-					getch();
-						
+					goto START;
 				}		
 			}
 			case ESC: {
@@ -1084,7 +1141,17 @@ bool NhapGio(Time &time, int x=wherex(), int y=wherey()){
 	return true;
 }
 
-ChuyenBay *NhapThongTinCB(bool &check){
+ChuyenBay *SearchMaCB(ListCB listCB, char *MaCB){
+	while(listCB.head!=NULL){
+		if(strcmp(listCB.head->chuyenBay->MaCB, MaCB) == 0){
+			return listCB.head->chuyenBay;
+		}
+		listCB.head = listCB.head->pNext;
+	}
+	return NULL;
+}
+
+ChuyenBay *NhapThongTinCB(ListMayBay &rootMB, ListCB listCB, bool &check){
 	ChuyenBay *cb = new ChuyenBay();
 	char *MaCB, *NoiDen, *TrangThai, *SoHieuMB;
 	MaCB = new char[15];
@@ -1092,16 +1159,29 @@ ChuyenBay *NhapThongTinCB(bool &check){
 	NoiDen = new char[40];
 	TrangThai = new char[4];
 	Time time;
-
-
-	
+MACB:
 	MaCB = GetText(46, 24, 15, 0, check);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
-	SoHieuMB = GetText(68, 24, 15, 0, check);
+	if(SearchMaCB(listCB, MaCB) != NULL){
+		SoHieuMB = NULL;
+		Notification(45,21, "      MA CHUYEN BAY DA TON TAI TRONG HE THONG        ");
+		gotoxy(46,24);	cout<<"               ";
+		goto MACB;
+	}
+SOHIEUMB:
+	SoHieuMB = GetText(68, 24, 15, 0, check);;
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
+	if(SearchMB(rootMB, SoHieuMB) == NULL){
+		SoHieuMB = NULL;
+		Notification(45,21, "  SO HIEU MAY BAY KHONG TON TAI! VUI LONG NHAP LAI   ");
+		gotoxy(68,24);	cout<<"               ";
+		goto SOHIEUMB;
+	}	
+
 	NhapNgay(time, 88, 24);
 	NhapGio(time, 99,24);	
-	NoiDen = GetText(55, 26, 39, 0, check);
+	setColor(0, TXT_CLR);
+	NoiDen = GetText(55, 26, 39, 0, check, false, true);
 		if(!check) {ClearScreen(35,21,115,28); return NULL;}
 			
 	strcpy(cb->MaCB, MaCB) ;
@@ -1141,7 +1221,7 @@ bool DeleteCB(ListCB &listCB, char *MaCB){
 	return false;
 }
 
-void ChuyenBayController(ListCB &listCB) {
+void ChuyenBayController(ListMayBay &rootMB, ListCB &listCB) {
 	bool change=false;
 START:
 	bool check=true;
@@ -1149,6 +1229,7 @@ START:
 	int x=5, y=10;		
 	int SelectedItem = 0;
 	char key;
+	ClearScreen(0,0,120,28);
 	FormChuyenBay(listCB);
 	ChuyenBay *cb;
 BEGIN:
@@ -1174,7 +1255,7 @@ BEGIN:
 			case ENTER: {
 				if(SelectedItem == 0){
 					ThongTinCBScreen("                    THEM CHUYEN BAY MOI                           ");
-					cb = NhapThongTinCB(check);
+					cb = NhapThongTinCB(rootMB, listCB, check);
 					if(!cb) goto START;
 					NodeCB *node = CreateNodeCB(cb);
 					if(listCB.head == NULL || (strcmp(listCB.head->chuyenBay->MaCB, cb->MaCB) > 0)){
@@ -1192,15 +1273,19 @@ BEGIN:
 				else if(SelectedItem == 1){
 					SearchCBScreen("                    HUY CHUYEN BAY                    ");
 					char *MaCB = new char[15];
+				MACB:
 					MaCB = GetText(71, 24, 15 , 0, check);
 						if(!check) {ClearScreen(35,21,115,28); goto START;}
-					change = DeleteCB(listCB, MaCB);
-					if(change){
-						clrscr();
-						cout << "OK";
-					}else{
-						clrscr();
-						cout << " Not OK";
+					if(SearchMaCB(listCB, MaCB) == NULL){
+						MaCB = NULL;
+						Notification(45,21, "     MA CHUYEN BAY KHONG TON TAI TRONG HE THONG      ");
+						gotoxy(71,24);	cout<<"               ";
+						goto MACB;
+					}
+					else {
+						if(ConfirmChange(50,20," BAN CO CHAC MUON XOA?")){
+							change = DeleteCB(listCB, MaCB);
+						}
 					}
 					goto START;
 				}	
@@ -1213,6 +1298,7 @@ BEGIN:
 				if(change){
 					if(ConfirmChange(50,20," BAN CO MUON THAY DOI ")){
 						GhiFileChuyenBay(listCB);
+						
 					}
 				}
 //				rootMB.n=0;
@@ -1258,18 +1344,18 @@ void FormDatVe(ListMayBay &rootMB,NodeCB *nodeCB){
 void DatVe(ListMayBay &listMB,ListHK &rootHK, ListCB &listCB, bool &check){
 START:
 	char key;
-	while(check){
-		key = GetKey();
-		if(key == ESC){
-			check =false;
-		}
-		if(key == ENTER){
-			char *Ho = new char[20];
-			Ho = GetText(64, 24, 20 , 0, check);
-		}
-		
-		
-	}
+//	while(check){
+//		key = GetKey();
+//		if(key == ESC){
+//			check =false;
+//		}
+//		if(key == ENTER){
+//			char *Ho = new char[20];
+//			Ho = GetText(64, 24, 20 , 0, check);
+//		}
+//		
+//		
+//	}
 	FormChuyenBay(listCB);
 	for(int i = 0; i < 5; i++) {
 		if(i != 0 ) DisplayText(ItemQuanLi[i], 6 , 6 + 4*i, TXT_CLR, DARK_CLR);		
@@ -1420,7 +1506,7 @@ BEGIN:
 			case ENTER: {
 				ClearScreen(0,0,120,28);
 				if(choose == 0) MayBayController(rootMB);
-				if(choose == 1) ChuyenBayController(listCB);
+				if(choose == 1) ChuyenBayController(rootMB, listCB);
 				if(choose == 2) QuanLiController(rootMB, rootHK, listCB);
 				clrscr();
 				goto BEGIN;
