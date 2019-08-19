@@ -35,9 +35,9 @@ char ItemMayBay[3][20] = {"  THEM MAY BAY    ", "  XOA MAY BAY     ", "  HIEU CH
 char ItemChuyenBay[3][20] = {"  THEM CHUYEN BAY ", "  XOA CHUYEN BAY  ", "  HIEU CHINH CB   "};
 char ItemQuanLi[5][30] = {"    DAT VE MAY BAY     ", " DANH SACH HANH KHACH  ", " DANH SACH CHUYEN BAY  ", "  DANH SACH VE TRONG   ", "  SO LUOT THUC HIEN CB "};
 //                                                                                   char MenuItem[3][30] = {" DANH SACH MAY BAY     ", " THONG TIN CHUYEN BAY  ", " QUAN LI VE - THONG KE "};	
-int thang[13]={0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+int DayOfMonth[13]={0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 int NamNhuan(int nam){
-	return (nam%4==0 && nam%100!=0 || nam%400==0)? 1: 0;
+	return (nam%4==0 && nam%100!=0 || nam%400==0) ? 1 : 0;
 }
 char Alphabet[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -131,6 +131,30 @@ void DisplayDateTime(DateTime time, int x, int y){
 	setColor(BG_CLR, TXT_CLR);
 }
 
+int TongSoNgay(int dd, int mm, int yyyy){
+	int T=0;
+	for(int t=1; t<mm; t++){
+		T+=DayOfMonth[t];
+		if(t==2) T+=NamNhuan(yyyy);
+	}
+	T+=dd;
+	return T;
+}
+
+int CompareDateTime(DateTime time1, DateTime time2){
+	if(time1.nam < time2.nam) return 2;
+	if(time1.nam > time2.nam) return 1;
+	int TongTime2 = TongSoNgay(time2.ngay, time2.thang, time2.nam);
+	int TongTime1 = TongSoNgay(time1.ngay, time1.thang, time1.nam);
+	if(TongTime1 < TongTime2) return 2;
+	else if(TongTime1 > TongTime2) return 1;
+	else {		//ngay truyen vao bang ngay he thong
+		if((60*time1.gio+time1.phut) < (60*time2.gio+time2.phut)) return 2;
+		else if((60*time1.gio+time1.phut) > (60*time2.gio+time2.phut)) return 1;
+		else return 0;
+	}
+}
+
 /* XU LI VE NODE HANH KHACH */
 //tao BST hanh khach
 ListHK Tao_BST(HanhKhach hanhKhach) {
@@ -155,13 +179,13 @@ void InsertHK(ListHK &t, HanhKhach hanhkhach){
 	}
 }
 
-//void Preorder (ListHK tree){ 
-//	if(tree != NULL) { 
-//	   	cout <<"\ndanh sach CMND: " << tree->hanhKhach.SoCMND << "\t" << tree->hanhKhach.Ho << "\t" << tree->hanhKhach.Ten << "\t" << tree->hanhKhach.Phai;	
-//	    Preorder(tree->pLeft);
-//	    Preorder (tree->pRight);
-//  	}
-//}
+void Preorder (ListHK tree){ 
+	if(tree != NULL) { 
+	   	cout <<"\ndanh sach CMND: " << tree->hanhKhach.SoCMND << "\t" << tree->hanhKhach.Ho << "\t" << tree->hanhKhach.Ten << "\t" << tree->hanhKhach.Phai;	
+	    Preorder(tree->pLeft);
+	    Preorder (tree->pRight);
+  	}
+}
 
 ListHK SearchHK(ListHK tree, char* CM){
 	if(tree==NULL) return NULL;
@@ -195,11 +219,11 @@ NodeCB* CreateNodeCB(ChuyenBay *cb){
 }
 
 bool AddHeadCB(ListCB &list, NodeCB* node) {
-   if (!list.head) //xét danh sách r?ng
+   if (!list.head) //xet danh sach 
       list.head = list.tail = node;
    else {
-      node->pNext = list.head; //s?a lk node c?n thêm
-      list.head = node; //ch?nh l?i con tr? c?a danh sách
+      node->pNext = list.head; //sua lai node con
+      list.head = node; //chinh con tro cua danh sach
    }
    return true;
 }
@@ -211,7 +235,7 @@ bool AddTailCB(ListCB &list, NodeCB *node) {
       list.tail->pNext = node;
       list.tail = node;
    }
-    return false;
+    return true;
 }
  
  //test
@@ -222,13 +246,11 @@ bool AddAfterCB(ListCB &list, NodeCB *node){
 			NodeCB *g = pos ->pNext;
 			node ->pNext = g;
 			pos ->pNext = node;
-			return true;
 		}
 		pos = p;
 	}
-	return false;
+	return true;
 }
-
 
 void DocFileChuyenBay(ListCB &listCB) {
 	string data;
@@ -308,7 +330,7 @@ void DocFileMayBay(ListMayBay &rootMB) {
 	f.close();
 }
 
-void GhiFileMayBay(ListMayBay &rootMB) {
+void GhiFileMayBay(ListMayBay rootMB) {
 	fstream f;
 	f.open("DSMAYBAY.txt", ios::out);
 	f << rootMB.n << endl;
@@ -325,7 +347,21 @@ void GhiFileChuyenBay(ListCB listCB) {
 		f << listCB.head->chuyenBay->MaCB << endl << listCB.head->chuyenBay->NgayGioKH.ngay << endl;
 		f << listCB.head->chuyenBay->NgayGioKH.thang << endl << listCB.head->chuyenBay->NgayGioKH.nam << endl;
 		f << listCB.head->chuyenBay->NgayGioKH.gio << endl << listCB.head->chuyenBay->NgayGioKH.phut << endl;
-		f << listCB.head->chuyenBay->NoiDen << endl << listCB.head->chuyenBay->TrangThai << endl;
+		f << listCB.head->chuyenBay->NoiDen << endl;
+		DateTime time;
+		TimeNow(time);
+		
+		//xu li trang thai
+		if(CompareDateTime(time, listCB.head->chuyenBay->NgayGioKH) == 1){
+			f << "3" << endl;	//trang thai hoan tat
+		}
+		else if(listCB.head->chuyenBay->dsVe.n == ListSoLuongGhe[listCB.head->chuyenBay->SoHieuMB]){
+			f << "2" << endl; //het ve
+		}
+		else {
+			f << listCB.head->chuyenBay->TrangThai << endl;		//trang thai hien tai
+		}
+		
 		f << listCB.head->chuyenBay->SoHieuMB << endl << listCB.head->chuyenBay->dsVe.n << endl;
 		for(int i = 0; i < listCB.head->chuyenBay->dsVe.n; i++){
 			f << listCB.head->chuyenBay->dsVe.dsVe[i].SoCMND << endl << listCB.head->chuyenBay->dsVe.dsVe[i].SoVe << endl;
@@ -335,16 +371,28 @@ void GhiFileChuyenBay(ListCB listCB) {
 	f.close();
 }
 
-//void Ghi_NLR_HanhKhach(ListHanhKhach *root) {
-//	fstream f;
-//	f.open("DSMAYBAY.txt", ios::out);
+//phai co &f de tranh loi ios_base is private
+void GhiHanhKhach(ListHanhKhach *root, ofstream &f){
+	if(root != NULL) {
+		f << root->hanhKhach.SoCMND << endl << root->hanhKhach.Ho << endl << root->hanhKhach.Ten << endl << root->hanhKhach.Phai << endl;
+		GhiHanhKhach(root->pLeft, f);
+		GhiHanhKhach(root->pRight, f);
+	}
+}
+
+void Ghi_NLR_HanhKhach(ListHanhKhach *root) {
+	ofstream f;
+	f.open("DSHANHKHACH.txt", ios_base::out);
 //	if(root != NULL) {
-//		f << root->hanhKhach.SoCMND << endl << root->hanhKhach.Ho << endl << root->hanhKhach.Ten << endl << root->hanhKhach.Phai << endl << endl;
+//		f << root->hanhKhach.SoCMND << endl << root->hanhKhach.Ho << endl << root->hanhKhach.Ten << endl << root->hanhKhach.Phai << endl;
 //		Ghi_NLR_HanhKhach(root->pLeft);
 //		Ghi_NLR_HanhKhach(root->pRight);
 //	}
-//	f.close();
-//}
+
+	GhiHanhKhach(root, f);
+
+	f.close();
+}
 
 void DocFileHanhKhach(ListHK &rootHK) {
 	string data;
@@ -363,8 +411,6 @@ void DocFileHanhKhach(ListHK &rootHK) {
 		f >> hk.Phai;
 		f.ignore();
 		InsertHK(rootHK, hk);		//them moi vao BST
-//		cout << "\n\ndata: " << data;
-//		cout << "\nCMND: " << hk.SoCMND << "\t" << hk.Ho << "\t" << hk.Ten << "\t" <<hk.Phai;
 	}
 	f.close();
 }
@@ -1064,6 +1110,9 @@ void GetDate(DateTime &time, int x, int y){
 	char *thang = new char[5];
 	char *nam = new char[5];
 DAY:
+	setColor(0, TXT_CLR);
+//	gotoxy(77,26); cout<<"                 ";
+//	DisplayDateTime(time, x,y);
 	setColor(0,15); gotoxy(x+2,y); cout << "/";	gotoxy(x+5,y); cout << "/";
 	ngay = GetNumberOfTime(x, y, 2, 1, 2, check);
 	int dd = atoi(ngay);
@@ -1089,6 +1138,21 @@ YEAR:
 		nam = NULL;
 		gotoxy(x+6,y);	cout << "    ";
 		goto YEAR;
+	}
+	if(NamNhuan(yy) == 1 && mm == 2 && dd > 29){ //&& mm == 2 && dd > 29
+		Notification(45,21, " NAM NHUAN - THANG 2 TOI DA DUOC 29 NGAY! VUI LONG NHAP LAI ");
+		gotoxy(x,y);	cout << "  ";
+		goto DAY;
+	}
+	else if(NamNhuan(yy) == 0 && mm == 2 && dd > 28){
+		Notification(45,21, "       THANG 2 TOI DA DUOC 28 NGAY! VUI LONG NHAP LAI       ");
+		gotoxy(x,y);	cout << "  ";
+		goto DAY;
+	}
+	else if(mm!= 2 && dd > DayOfMonth[mm] ){
+		Notification(45,21, "     THOI GIAN BAN NHAP KHONG HOP LE! VUI LONG NHAP LAI     ");
+		gotoxy(x,y);	cout << "  ";
+		goto DAY;
 	}
 	time.ngay=atoi(ngay);
 	time.thang=atoi(thang);
@@ -1300,6 +1364,10 @@ BEGIN:
 					else{
 						change=AddAfterCB(listCB, node);
 					}
+					
+					cout<< "change: " << change;
+					getch();
+					
 					goto START;	
 				}
 				else if(SelectedItem == 1){
@@ -1413,7 +1481,7 @@ void FormNhapVe(){
 	gotoxy(61,27); cout << "                                         ";
 }
 
-void GetTicket(ListHK &rootHK, ListCB &listCB, char *NoiDen, bool &check1, HanhKhach &hk, char *&MaCB){
+void GetTicket(ListHK &rootHK, ListCB &listCB, char *NoiDen, bool &check1, HanhKhach &hk, char *&MaCB, bool &checkExist){
 MACB:
 	gotoxy(61, 27);	cout << NoiDen;
 	MaCB = GetText(83, 23, 15 , 0, check1);
@@ -1435,7 +1503,6 @@ SOCMND:
 	Ho = new char[20];
 	Ten = new char[10];
 	Phai = new char[4];
-	bool checkExist = true;	//Kiem tra ton tai cua hanh khach
 	if(item){
 		gotoxy(49,25); cout << item->hanhKhach.SoCMND;
 		gotoxy(64,25); cout << item->hanhKhach.Ho;	
@@ -1524,7 +1591,7 @@ bool DeleteVe(ListCB &listCB, char *SoCMND){
 	return false;
 }
 
-void FormDatVe(ListMayBay &rootMB, ListCB &listCB, NodeCB *nodeCB, bool &check, char *SoCMND){
+void FormDatVe(ListMayBay &rootMB, ListCB &listCB, ListHK &rootHK, NodeCB *nodeCB, bool &check, char *SoCMND){
 	setColor(SELECTED_CLR, 4);
 	gotoxy(34,2);	cout << "                                                                            ";
 	gotoxy(34,3);	cout << "                        THONG TIN CHUYEN BAY                                ";
@@ -1569,14 +1636,35 @@ NHAPGHE:
 			strcpy(ve->SoCMND, SoCMND);
 			strcpy(ve->SoVe, SoVe);
 			NodeCB *node = listCB.head;
+			
+			
 			while(node != NULL){
 				if(strcmp(node->chuyenBay->MaCB, nodeCB->chuyenBay->MaCB) == 0) {
+					
+					if(node->chuyenBay->dsVe.dsVe == NULL){
+						node->chuyenBay->dsVe.dsVe = new VeHanhKhach[ListSoLuongGhe[node->chuyenBay->SoHieuMB]];
+					}
 					InsertVe(node->chuyenBay->dsVe, ve);
 					break;
 				}				
 				node = node->pNext;
 			}
-			GhiFileChuyenBay(listCB);	
+			
+			GhiFileChuyenBay(listCB);
+			
+//			clrscr();
+//			
+//			
+//			cout << "okeeeeeeeeeeeeeeeeeeeee" << endl;
+//			
+//			Preorder(rootHK);
+//			
+//			
+//			getch();
+			
+			
+			Ghi_NLR_HanhKhach(rootHK);
+				
 			Notification(45,21, "                DAT VE THANH CONG                   ");
 			ClearScreen(30,5,120,28);
 			return;
@@ -1620,8 +1708,10 @@ NOIDEN:
 				ClearScreen(34,0,120,28);
 				FormChuyenBay(listCB, NoiDen);
 				FormNhapVe();
-				GetTicket(rootHK, listCB, NoiDen, check1, hk, MaCB);
-				InsertHK(rootHK, hk);
+				bool checkExist = true;
+				GetTicket(rootHK, listCB, NoiDen, check1, hk, MaCB, checkExist);
+				if(!checkExist)
+					InsertHK(rootHK, hk);
 			}
 		
 			NodeCB *nodeCB = SearchCB(listCB, NoiDen, MaCB);
@@ -1629,7 +1719,7 @@ NOIDEN:
 			//Co ton tai ma chuyen bay tuong ung
 			if(nodeCB != NULL) {
 				ClearScreen(30,5,120,28);
-				FormDatVe( listMB, listCB,nodeCB, check1, hk.SoCMND);
+				FormDatVe( listMB, listCB, rootHK,nodeCB, check1, hk.SoCMND);
 				goto START;	
 			}
 		}	
@@ -1738,6 +1828,92 @@ void FormNhapNoiDen(){
 	gotoxy(77,26); cout << "                 ";
 }
 
+bool CheckNoiDenTime(ListCB list, char *NoiDen, DateTime time){
+	for(NodeCB *node = list.head; node != NULL; node = node->pNext){
+		if(strcmp(node->chuyenBay->NoiDen, NoiDen) == 0 && (CompareDateTime(time, node->chuyenBay->NgayGioKH) == 0)){
+			return true;
+		}
+	}
+	return false;
+}
+
+void InDSCB(ListCB list, char *NoiDen, DateTime time){
+	setColor(SELECTED_CLR, 4);
+	gotoxy(34,2);	cout << "                                                                            ";
+	gotoxy(34,3);	cout << "                        THONG TIN CHUYEN BAY                                ";
+	gotoxy(34,4);	cout << "                                                                            ";
+	setColor(0, 4);
+	gotoxy(34,6);	cout << "    MA CB        THOI GIAN           NOI DEN       TRANG THAI   SO HIEU MB  ";
+	int y = 10;
+	//ke dung
+	VerticalLine(34,5, 21, 179); VerticalLine(45,5, 21, 179);
+	VerticalLine(65,5, 21, 179); 	VerticalLine(84,5, 21, 179);
+	VerticalLine(95,5, 21, 179); 	VerticalLine(109,5, 21, 179);
+	//ke ngang
+	HorizontalLine(34,7,110,236); 
+	HorizontalLine(34,5,110,236);
+	HorizontalLine(34,20,110,236);
+	//in du lieu
+	int i=0;
+	for(NodeCB *node = list.head; node != NULL; node = node->pNext){
+		if(strcmp(node->chuyenBay->NoiDen, NoiDen) == 0 && (CompareDateTime(time, node->chuyenBay->NgayGioKH) == 0)){
+			gotoxy(37,8+i);	cout << node->chuyenBay->MaCB;
+			gotoxy(48,8+i);	cout << node->chuyenBay->NgayGioKH.ngay << "/" << node->chuyenBay->NgayGioKH.thang << "/" << node->chuyenBay->NgayGioKH.nam << " " << node->chuyenBay->NgayGioKH.gio << ":" << node->chuyenBay->NgayGioKH.phut;
+			gotoxy(68,8+i);	cout << node->chuyenBay->NoiDen;
+			gotoxy(89,8+i);	cout << node->chuyenBay->TrangThai;	
+			gotoxy(98,8+i);	cout << node->chuyenBay->SoHieuMB;
+			i++;
+		}
+	}
+	getch();
+}
+
+NodeCB *GetNodeCB(ListCB listCB, char *MaCB){
+	while(listCB.head!=NULL){
+		if(strcmp(listCB.head->chuyenBay->MaCB, MaCB) == 0){
+			return listCB.head;
+		}
+		listCB.head = listCB.head->pNext;
+	}
+	return NULL;
+}
+
+void InDSGhe(ListMayBay rootMB, ListCB listCB, char *MaCB ){
+	setColor(SELECTED_CLR, 4);
+	gotoxy(34,2);	cout << "                                                                            ";
+	gotoxy(34,3);	cout << "                        THONG TIN CHUYEN BAY                                ";
+	gotoxy(34,4);	cout << "                                                                            ";
+	setColor(0, 4);
+	gotoxy(40,5);
+	
+	NodeCB *nodeCB = GetNodeCB(listCB, MaCB);
+	
+	int SLGhe = ListSoLuongGhe[nodeCB->chuyenBay->SoHieuMB];
+	cout << "Tong so luong ve: " << SLGhe << endl ;
+
+	//Tim may bay de liet ke so ghe theo dong va day
+	MayBay *mb = new MayBay();
+	mb = SearchMB(rootMB, nodeCB->chuyenBay->SoHieuMB);
+
+	for(int i=0; i < mb->SoDay; i++){
+		gotoxy(40,6+i);
+		for(int j=0; j < mb->SoDong; j++){
+			if(CheckTicket(nodeCB, ChuyenSoVe(i, j))){
+				setColor(0, DARK_CLR);
+				cout << ChuyenSoVe(i, j) << "\t";
+				setColor(0, TXT_CLR);
+			}
+			else cout << ChuyenSoVe(i, j) << "\t";
+		}
+		cout << endl<<endl;
+	}
+	setColor(25, 4);
+}
+
+void ThongKeSoLuotCB(){
+	
+}
+
 void QuanLiController(ListMayBay &rootMB, ListHK &rootHK, ListCB &listCB){
 	int choose=0;
 START:
@@ -1803,14 +1979,25 @@ BEGIN:
 						Notification(45,21, "    HIEN CHUA CO CHUYEN BAY DEN NOI BAN VUA NHAP     ");
 						goto NOIDEN;
 					} else{
-						ClearScreen(34,0,120,20);
-						FormChuyenBay(listCB, NoiDen);
+						ClearScreen(34,0,120,28);
+				NHAPTG:
 						
-//						time.ngay=time.gio=time.phut=time.thang=time.nam=0;
+						FormChuyenBay(listCB, NoiDen);
+						FormNhapNoiDen();
+						gotoxy(59,24); cout << NoiDen;
 						DateTime time;
-//						DisplayDateTime(time,77,26);
+						TimeNow(time);
 						GetDate(time, 77, 26);
 						GetTime(time, 88, 26);
+//						gotoxy(77,26); cout<<"                 ";
+						if(CheckNoiDenTime(listCB, NoiDen, time)){
+							InDSCB(listCB, NoiDen, time);
+						}
+						else{
+							Notification(45,21, "       THOI GIAN BAN NHAP KHONG CO CHUYEN BAY        ");
+							ClearScreen(34,20,120,28);
+							goto NHAPTG;
+						}
 						
 						
 					}
@@ -1834,14 +2021,12 @@ BEGIN:
 					}
 					else{
 						ClearScreen(34,0,115,28);
-//						InDSHK(listCB, rootHK, cb);
-						cout << "okeoke0";
-						
+						InDSGhe(rootMB, listCB, MaCB);
 						getch();
 					}
 				}	
 				if(choose == 4){
-					
+					ThongKeSoLuotCB();
 				}		
 				ClearScreen(0,0,120,28);
 				goto START;
@@ -1851,7 +2036,6 @@ BEGIN:
 			}
 		}
 	}
-	
 } 
 
 void MenuController(ListMayBay &rootMB, ListHK &rootHK, ListCB &listCB)
@@ -1892,7 +2076,6 @@ BEGIN:
 	}
 } 
 
-
 int main()
 {
 	ListMayBay rootMB;
@@ -1908,4 +2091,3 @@ int main()
 	
 	return 0; 	
 }
-
