@@ -1899,21 +1899,35 @@ void InDSGhe(ListMayBay rootMB, ListCB listCB, char *MaCB ){
 	cout << "Tong so luong ve: " << SLGhe << endl ;
 
 	//Tim may bay de liet ke so ghe theo dong va day
-	MayBay *mb = new MayBay();
+	MayBay *mb; //= new MayBay();
 	mb = SearchMB(rootMB, nodeCB->chuyenBay->SoHieuMB);
+
+//	for(int i=0; i < mb->SoDay; i++){
+//		gotoxy(40,6+i);
+//		for(int j=0; j < mb->SoDong; j++){
+//			if(!CheckTicket(nodeCB, ChuyenSoVe(i, j))){
+//				setColor(0, DARK_CLR);
+//				cout << ChuyenSoVe(i, j) << "\t";
+//				setColor(0, TXT_CLR);
+//			}
+//			else cout << ChuyenSoVe(i, j) << "\t";
+//		}
+//		cout << endl<<endl;
+//	}
 
 	for(int i=0; i < mb->SoDay; i++){
 		gotoxy(40,6+i);
 		for(int j=0; j < mb->SoDong; j++){
-			if(CheckTicket(nodeCB, ChuyenSoVe(i, j))){
+			if(!CheckTicket(nodeCB, ChuyenSoVe(i, j))){
 				setColor(0, DARK_CLR);
 				cout << ChuyenSoVe(i, j) << "\t";
 				setColor(0, TXT_CLR);
 			}
-			else cout << ChuyenSoVe(i, j) << "\t";
+//			else cout << ChuyenSoVe(i, j) << "\t";
 		}
 		cout << endl<<endl;
 	}
+	
 	setColor(25, 4);
 }
 
@@ -2151,6 +2165,6 @@ int main()
 	DocFileChuyenBay(listCB);
 	
 	MenuController(rootMB, rootHK, listCB);	
-	
+
 	return 0; 	
 }

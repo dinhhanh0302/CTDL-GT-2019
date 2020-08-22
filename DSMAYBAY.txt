@@ -1,4 +1,4 @@
-4
+3
 MB
 AIRBUS
 5
@@ -11,7 +11,3 @@ MB2
 BOEING
 4
 5
-MB3
-BOEING
-4
-6
